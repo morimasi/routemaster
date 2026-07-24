@@ -1,8 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect } from 'react';
 import {
-  CreditCard, CheckCircle2, Download, ArrowUpRight, TrendingUp,
-  Zap, FileText, BarChart3, Wallet
+  CreditCard, CheckCircle2, Download, ArrowUpRight, Wallet
 } from 'lucide-react';
 import { BillingApiService } from './api';
 import type { SubscriptionPlan, UsageMetric, Invoice, PaymentMethod } from './types';
@@ -111,7 +109,7 @@ export const BillingModule: React.FC = () => {
             <span className="text-[9px] sm:text-xs text-slate-400">Geçmiş</span>
           </div>
           <div className="space-y-1.5 sm:space-y-2 text-[9px] sm:text-xs">
-            {invoices.map((inv, i) => (
+            {invoices.map((inv) => (
               <div key={inv.id} className="flex items-center justify-between p-2.5 sm:p-3 bg-slate-950 rounded-xl border border-slate-800">
                 <div>
                   <span className="font-bold text-white block text-[9px] sm:text-xs">{inv.date}</span>

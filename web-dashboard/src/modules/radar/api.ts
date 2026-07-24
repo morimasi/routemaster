@@ -44,7 +44,7 @@ export class RadarApiService {
     }
   }
 
-  static async runOptimization(tenantId: string, fleetIds: string[], nodeIds: string[]) {
+  static async runOptimization(tenantId: string, fleetIds: string[], nodeIds: string[]): Promise<{ status: string; solver_execution_time_ms: number; fuel_saved_percent: number; total_distance_reduced_km: number; optimized_routes: Array<{ vehicle_id: string; assigned_nodes_count: number; estimated_fuel_saved_percent: number }> }> {
     try {
       return await post(`${API_BASE}/api/v5/routes/multi-optimize`, {
         tenant_id: tenantId, fleet: fleetIds.map((id) => ({ id })), associated_student_nodes: nodeIds,

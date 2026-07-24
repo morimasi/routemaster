@@ -45,7 +45,7 @@ export class FleetApiService {
     }
   }
 
-  static async addVehicle(tenantId: string, data: Record<string, unknown>) {
+  static async addVehicle(tenantId: string, data: Record<string, unknown>): Promise<{ status: string; vehicle_id: string }> {
     try {
       return await post(`${API_BASE}/api/v5/fleet/vehicle`, { tenant_id: tenantId, ...data });
     } catch {
@@ -54,7 +54,7 @@ export class FleetApiService {
     }
   }
 
-  static async assignDriverAI(tenantId: string, vehicleId: string) {
+  static async assignDriverAI(tenantId: string, vehicleId: string): Promise<{ status: string; driver_id: string; confidence: number; reason: string }> {
     try {
       return await post(`${API_BASE}/api/v5/fleet/ai-assign`, { tenant_id: tenantId, vehicle_id: vehicleId });
     } catch {

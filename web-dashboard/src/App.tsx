@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search } from 'lucide-react';
 import { TopBar } from './components/ui/TopBar';
@@ -123,7 +123,7 @@ function App() {
       {activeRole === 'planner' && (
         <div className={`flex-1 flex ${isTablet ? 'overflow-y-auto' : 'overflow-hidden'} p-2 sm:p-3 lg:p-4`}>
           {!isTablet && (
-            <PremiumSidebar activeTab={activeTab} onTabChange={setActiveTab} onDocumentAIOpen={() => setIsPhotoRouteOpen(true)} />
+            <PremiumSidebar activeTab={activeTab} onTabChange={handleTabChange} onDocumentAIOpen={() => setIsPhotoRouteOpen(true)} />
           )}
           <main className="flex-1 flex flex-col p-1 sm:p-2 min-w-0">
             {isTablet && (

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  FileText, FileUp, X, Download, Eye, Trash2, Search,
-  FileSpreadsheet, FileImage, File, CheckCircle2,
+  FileText, X, Download, Eye, Trash2, Search,
+  FileSpreadsheet, FileImage, File,
   Upload, RefreshCw
 } from 'lucide-react';
 import { DocumentApiService } from './api';

@@ -20,9 +20,7 @@ const SidebarItem: React.FC<SidebarItemProps> = ({ icon, label, isActive, onClic
         : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
     }`}
   >
-    {React.cloneElement(icon as React.ReactElement, { 
-      className: `w-4 h-4 ${isActive ? 'text-blue-400' : ''}` 
-    })}
+    <div className={`w-4 h-4 ${isActive ? 'text-blue-400' : ''}`}>{icon}</div>
     <span className="text-xs font-medium">{label}</span>
   </div>
 );

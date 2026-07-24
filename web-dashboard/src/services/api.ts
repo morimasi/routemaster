@@ -75,7 +75,7 @@ export class ShuttleXApiService {
   }
 
   // ── Voice NLP Intent Parser (Hands-Free HUD) ─────────────
-  static async parseVoiceIntent(phrase: string) {
+  static async parseVoiceIntent(phrase: string): Promise<{ status: string; spoken_phrase: string; resolved_intent: { action: string; confidence_score: number } }> {
     try {
       return await post(`${API_BASE}/api/v5/voice/intent`, {
         tenant_id: 't-1001', user_id: 'd-5001', role: 'DRIVER', spoken_phrase: phrase,

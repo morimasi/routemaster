@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Building2, Lock, Bell, Database, Server, Copy, CheckCircle2,
-  Shield, Globe, Webhook, Activity, Save, RefreshCw
+  Globe, Webhook, Activity, Save, RefreshCw
 } from 'lucide-react';
 import { SettingsApiService } from './api';
 import type { InstitutionProfile, SecurityConfig, WebhookConfig } from './types';

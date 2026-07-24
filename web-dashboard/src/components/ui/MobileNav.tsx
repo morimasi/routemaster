@@ -1,8 +1,7 @@
 import React from 'react';
-import { motion } from 'framer-motion';
 import { 
   LayoutDashboard, Map, Users, Settings, CreditCard, 
-  Sparkles, FileText, CarFront 
+  Sparkles, FileText
 } from 'lucide-react';
 
 interface NavItem {
@@ -43,12 +42,8 @@ export const MobileNav: React.FC<MobileNavProps> = ({ activeTab, onTabChange, on
                 activeTab === item.id ? 'text-blue-400' : 'text-slate-500'
               }`}
             >
-              <div className={`p-1 rounded-lg transition-colors ${
-                activeTab === item.id ? 'bg-blue-600/15' : ''
-              }`}>
-                {React.cloneElement(item.icon as React.ReactElement, {
-                  className: `w-5 h-5 ${activeTab === item.id ? 'text-blue-400' : ''}`
-                })}
+              <div className={`p-1 rounded-lg transition-colors ${activeTab === item.id ? 'bg-blue-600/15' : ''}`}>
+                {item.icon}
               </div>
               <span className="text-[9px] font-semibold mt-0.5 leading-none">{item.label}</span>
             </button>
@@ -63,9 +58,7 @@ export const MobileNav: React.FC<MobileNavProps> = ({ activeTab, onTabChange, on
               className="flex flex-col items-center py-1.5 px-2 min-w-0 rounded-xl transition-all text-purple-400"
             >
               <div className="p-1 rounded-lg bg-purple-600/10">
-                {React.cloneElement(item.icon as React.ReactElement, {
-                  className: 'w-5 h-5 text-purple-400'
-                })}
+                {item.icon}
               </div>
               <span className="text-[9px] font-semibold mt-0.5 leading-none text-purple-400">{item.label}</span>
             </button>

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Sparkles, FileUp, CheckCircle2, X, MapPin, Trash2, 
-  Camera, Image, Upload, Map, Route, AlertCircle 
+  Camera, Image, Route
 } from 'lucide-react';
 import { PhotoRouteApiService } from './api';
 import type { DocumentAINode } from './types';

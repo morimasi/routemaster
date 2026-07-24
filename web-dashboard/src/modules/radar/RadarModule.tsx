@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CarFront, ChevronRight, AlertTriangle, Cpu, CheckCircle2, X,
-  Navigation, Clock, User, ZoomIn, ZoomOut, RotateCcw, Radio, MapPin, Gauge
+  Navigation, Clock, User, ZoomIn, ZoomOut, RotateCcw, Radio
 } from 'lucide-react';
 import { useWindowSize } from '../../hooks/useWindowSize';
 import { RadarApiService } from './api';

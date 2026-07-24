@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CarFront, Phone, ShieldCheck, UserCheck, Search, Plus, X, Star,
-  Fuel, Wrench, Sparkles, Users, Truck, BarChart3
+  Fuel, Wrench, Sparkles, Users, Truck
 } from 'lucide-react';
 import { useWindowSize } from '../../hooks/useWindowSize';
 import { FleetApiService } from './api';

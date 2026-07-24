@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Map as MapIcon, CarFront, ChevronRight, AlertTriangle, Cpu, CheckCircle2 } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { Badge } from '../ui/Badge';
-import { Route } from '../../types';
+import type { Route } from '../../types';
 import { ShuttleXApiService } from '../../services/api';
 
 interface PlannerRadarProps {

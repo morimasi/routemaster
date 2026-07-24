@@ -12,7 +12,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { ShuttleXApiService } from '../services/api';
-import { ChatMessage } from '../types';
+import type { ChatMessage } from '../types';
 
 export const ParentApp: React.FC = () => {
   const [isAbsenceFlagged, setIsAbsenceFlagged] = useState(false);

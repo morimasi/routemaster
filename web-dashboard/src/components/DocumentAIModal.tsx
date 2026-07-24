@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileUp, Sparkles, CheckCircle2, X, MapPin } from 'lucide-react';
 import { ShuttleXApiService } from '../services/api';
-import { DocumentAINode } from '../types';
+import type { DocumentAINode } from '../types';
 
 interface Props {
   isOpen: boolean;

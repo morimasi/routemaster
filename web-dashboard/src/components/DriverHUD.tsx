@@ -13,7 +13,7 @@ import {
   PhoneCall
 } from 'lucide-react';
 import { ShuttleXApiService } from '../services/api';
-import { RouteNode } from '../types';
+import type { RouteNode } from '../types';
 
 export const DriverHUD: React.FC = () => {
   const [isVoiceActive, setIsVoiceActive] = useState(false);

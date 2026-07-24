@@ -10,7 +10,9 @@ import {
   Volume2, 
   UserX, 
   ArrowRight,
-  PhoneCall
+  PhoneCall,
+  Gauge,
+  Compass
 } from 'lucide-react';
 import { ShuttleXApiService } from '../services/api';
 import type { RouteNode } from '../types';
@@ -22,16 +24,24 @@ export const DriverHUD: React.FC = () => {
   const [legalTimer, setLegalTimer] = useState(120);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
   const [isPruningApiLoading, setIsPruningApiLoading] = useState(false);
+  const [stopFilter, setStopFilter] = useState<'ALL' | 'PENDING' | 'PASSED'>('ALL');
+  const [gpsSpeed] = useState(42);
 
   // Dynamic Route Sequence Nodes
   const [nodes, setNodes] = useState<RouteNode[]>([
     { id: 'n1', studentName: 'Ahmet Yılmaz', stopName: 'Atatürk Cad. No:14', seq: 1, status: 'PASSED', absenceFlagged: false },
-    { id: 'n2', studentName: 'Eymen Altunel', stopName: 'Cumhuriyet Mah. 4. Sok', seq: 2, status: 'CURRENT', absenceFlagged: true, absenceNote: 'Veli: Ateşlendi, bugün gelmeyecek.' },
+    { id: 'n2', studentName: 'Eymen Altunel', stopName: 'Cumhuriyet Mah. 4. Sok', seq: 2, status: 'CURRENT', absenceFlagged: true, absenceNote: 'Veli (Ateş / Hastalık): Bugün servise binmeyecek.' },
     { id: 'n3', studentName: 'Zeynep Kaya', stopName: 'Gül Apt. Kat:3', seq: 3, status: 'PENDING', absenceFlagged: false },
     { id: 'n4', studentName: 'Can Demir', stopName: 'Deniz Evleri B Blok', seq: 4, status: 'PENDING', absenceFlagged: false }
   ]);
 
   const currentNode = nodes.find((n) => n.status === 'CURRENT');
+
+  const filteredNodes = nodes.filter((n) => {
+    if (stopFilter === 'PENDING') return n.status === 'PENDING' || n.status === 'CURRENT';
+    if (stopFilter === 'PASSED') return n.status === 'PASSED' || n.status === 'SKIPPED_BY_DRIVER';
+    return true;
+  });
 
   // Legal Timer Countdown Effect
   useEffect(() => {
@@ -60,7 +70,6 @@ export const DriverHUD: React.FC = () => {
             ? { ...node, status: 'SKIPPED_BY_DRIVER' as const, absenceFlagged: false }
             : node
         );
-        // Find next pending node and make it current
         const nextPending = updated.find((n) => n.status === 'PENDING');
         if (nextPending && selectedNodeForPrune.status === 'CURRENT') {
           return updated.map((n) => (n.id === nextPending.id ? { ...n, status: 'CURRENT' as const } : n));
@@ -104,7 +113,6 @@ export const DriverHUD: React.FC = () => {
     setIsVoiceActive(true);
     setVoiceStatusText('DINLENIYOR: "ShuttleX..."');
 
-    // Simulate speech intent recognition call
     setTimeout(async () => {
       const res = await ShuttleXApiService.parseVoiceIntent('ShuttleX Eymen duragını atla');
       if (res.resolved_intent.action === 'EXECUTE_PRUNE') {
@@ -120,7 +128,7 @@ export const DriverHUD: React.FC = () => {
     <div className="min-h-screen bg-black text-white p-4 md:p-6 font-sans flex flex-col justify-between select-none">
       
       {/* HUD Header Bar - High Contrast */}
-      <header className="flex justify-between items-center bg-gray-900/90 border-2 border-gray-800 rounded-3xl p-4 md:p-6 shadow-2xl">
+      <header className="flex flex-col md:flex-row justify-between items-center gap-4 bg-gray-900/90 border-2 border-gray-800 rounded-3xl p-4 md:p-6 shadow-2xl">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/50">
             <Navigation className="w-8 h-8 text-white animate-pulse" />
@@ -136,18 +144,26 @@ export const DriverHUD: React.FC = () => {
           </div>
         </div>
 
-        {/* Dynamic Voice AI Status Button */}
-        <button
-          onClick={handleVoiceCommand}
-          className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-sm transition-all duration-300 ${
-            isVoiceActive
-              ? 'bg-red-600 text-white shadow-lg shadow-red-600/60 animate-bounce'
-              : 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700'
-          }`}
-        >
-          <Mic className="w-5 h-5" />
-          <span>{voiceStatusText}</span>
-        </button>
+        {/* Live Speed & Voice AI Status Button */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2 bg-gray-950 border border-gray-800 px-4 py-2 rounded-2xl text-xs font-bold text-gray-300">
+            <Gauge className="w-5 h-5 text-blue-400" />
+            <span className="text-xl font-black text-white">{gpsSpeed}</span>
+            <span className="text-gray-500">KM/H</span>
+          </div>
+
+          <button
+            onClick={handleVoiceCommand}
+            className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-sm transition-all duration-300 ${
+              isVoiceActive
+                ? 'bg-red-600 text-white shadow-lg shadow-red-600/60 animate-bounce'
+                : 'bg-gray-800 text-gray-300 border border-gray-700 hover:bg-gray-700'
+            }`}
+          >
+            <Mic className="w-5 h-5" />
+            <span>{voiceStatusText}</span>
+          </button>
+        </div>
       </header>
 
       {/* Main HUD Body */}
@@ -156,54 +172,68 @@ export const DriverHUD: React.FC = () => {
         {/* Left 8 Cols: Current Navigation & Stop Focus */}
         <div className="lg:col-span-8 flex flex-col justify-between space-y-6">
           
+          {/* Turn-by-Turn Navigation Overlay Banner */}
+          <div className="bg-blue-950/40 border-2 border-blue-500/30 rounded-2xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Compass className="w-7 h-7 text-blue-400 animate-spin" />
+              <div>
+                <span className="text-xs font-bold text-blue-300 uppercase block">SONRAKİ MANEVRA</span>
+                <span className="text-base font-extrabold text-white">200m Sonra Sağa Dönün (Fatih Sultan Mehmet Cad.)</span>
+              </div>
+            </div>
+            <span className="text-xs font-bold bg-blue-600 px-3 py-1 rounded-full text-white">CANLI GPS</span>
+          </div>
+
           {/* Active Stop Hero Card */}
-          <div className="bg-gradient-to-br from-gray-900 to-gray-950 border-4 border-blue-500/40 rounded-3xl p-8 relative overflow-hidden shadow-2xl">
-            <div className="flex justify-between items-start">
-              <span className="bg-blue-600 text-white font-extrabold px-4 py-1.5 rounded-full text-xs tracking-wider uppercase">
-                SIRADAKİ DURAK #{currentNode?.seq ?? '-'}
-              </span>
-              <div className="flex items-center gap-2 text-blue-400 font-bold text-lg">
-                <Volume2 className="w-6 h-6 animate-pulse" />
-                <span>{currentNode ? '300 METRE KALDI' : 'ROTA BİTTİ'}</span>
-              </div>
-            </div>
-
-            <div className="my-6">
-              <h2 className="text-4xl md:text-5xl font-display font-black text-white tracking-tight mb-2">
-                {currentNode?.studentName ?? 'Tüm Duraklar Tamamlandı 🎉'}
-              </h2>
-              <p className="text-2xl text-gray-300 font-medium">
-                {currentNode?.stopName ?? 'Servis aracı okula ulaştı.'}
-              </p>
-            </div>
-
-            {/* V4.1 ALERT BADGE - VELI DEVAMSIZLIK UYARISI */}
-            {currentNode?.absenceFlagged && (
-              <div className="bg-amber-500/20 border-2 border-amber-500 rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-amber-500/20 alert-badge-pulse">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-8 h-8 text-amber-500 flex-shrink-0" />
-                  <div>
-                    <span className="text-amber-400 font-extrabold text-sm uppercase block">
-                      ⚠ VELİ BİLDİRİMİ (DURAK DIŞI BIRAKMA UYARISI)
-                    </span>
-                    <span className="text-gray-200 font-medium text-base">
-                      {currentNode.absenceNote}
-                    </span>
-                  </div>
+          <div className="bg-gradient-to-br from-gray-900 to-gray-950 border-4 border-blue-500/40 rounded-3xl p-8 relative overflow-hidden shadow-2xl flex-1 flex flex-col justify-between">
+            <div>
+              <div className="flex justify-between items-start">
+                <span className="bg-blue-600 text-white font-extrabold px-4 py-1.5 rounded-full text-xs tracking-wider uppercase">
+                  SIRADAKİ DURAK #{currentNode?.seq ?? '-'}
+                </span>
+                <div className="flex items-center gap-2 text-blue-400 font-bold text-lg">
+                  <Volume2 className="w-6 h-6 animate-pulse" />
+                  <span>{currentNode ? '300 METRE KALDI' : 'ROTA BİTTİ'}</span>
                 </div>
-
-                <button
-                  onClick={() => setSelectedNodeForPrune(currentNode)}
-                  className="bg-amber-500 hover:bg-amber-600 text-black font-black px-6 py-3 rounded-xl text-sm transition-all shadow-md active:scale-95"
-                >
-                  DURAĞI ATLA (PRUNE)
-                </button>
               </div>
-            )}
+
+              <div className="my-6">
+                <h2 className="text-4xl md:text-5xl font-display font-black text-white tracking-tight mb-2">
+                  {currentNode?.studentName ?? 'Tüm Duraklar Tamamlandı 🎉'}
+                </h2>
+                <p className="text-2xl text-gray-300 font-medium">
+                  {currentNode?.stopName ?? 'Servis aracı okula ulaştı.'}
+                </p>
+              </div>
+
+              {/* V4.1 ALERT BADGE - VELI DEVAMSIZLIK UYARISI */}
+              {currentNode?.absenceFlagged && (
+                <div className="bg-amber-500/20 border-2 border-amber-500 rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-amber-500/20 alert-badge-pulse">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="w-8 h-8 text-amber-500 flex-shrink-0" />
+                    <div>
+                      <span className="text-amber-400 font-extrabold text-sm uppercase block">
+                        ⚠ VELİ BİLDİRİMİ (DURAK DIŞI BIRAKMA UYARISI)
+                      </span>
+                      <span className="text-gray-200 font-medium text-base">
+                        {currentNode.absenceNote}
+                      </span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => setSelectedNodeForPrune(currentNode)}
+                    className="bg-amber-500 hover:bg-amber-600 text-black font-black px-6 py-3 rounded-xl text-sm transition-all shadow-md active:scale-95"
+                  >
+                    DURAĞI ATLA (PRUNE)
+                  </button>
+                </div>
+              )}
+            </div>
 
             {/* Bottom Actions: 2 Min Timer & Board Confirmation */}
             {currentNode && (
-              <div className="grid grid-cols-2 gap-4 mt-8">
+              <div className="grid grid-cols-2 gap-4 mt-6">
                 <button
                   onClick={() => setIsTimerRunning(!isTimerRunning)}
                   className={`flex items-center justify-center gap-3 p-5 rounded-2xl font-black text-lg border-2 transition-all ${
@@ -256,13 +286,28 @@ export const DriverHUD: React.FC = () => {
 
         {/* Right 4 Cols: Route Sequence Node Timeline */}
         <div className="lg:col-span-4 bg-gray-900/80 border-2 border-gray-800 rounded-3xl p-6 flex flex-col">
-          <h3 className="text-lg font-display font-extrabold text-gray-300 mb-6 flex items-center justify-between">
-            <span>DURAK SIRALAMASI</span>
-            <span className="text-xs bg-gray-800 text-gray-400 px-3 py-1 rounded-full">{nodes.length} Durak</span>
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-display font-extrabold text-gray-300">DURAK SIRALAMASI</h3>
+            
+            {/* Filter tabs */}
+            <div className="flex gap-1 bg-gray-950 p-1 rounded-xl border border-gray-800 text-[10px] font-bold">
+              <button
+                onClick={() => setStopFilter('ALL')}
+                className={`px-2 py-1 rounded-lg ${stopFilter === 'ALL' ? 'bg-blue-600 text-white' : 'text-gray-400'}`}
+              >
+                Tümü
+              </button>
+              <button
+                onClick={() => setStopFilter('PENDING')}
+                className={`px-2 py-1 rounded-lg ${stopFilter === 'PENDING' ? 'bg-amber-600 text-white' : 'text-gray-400'}`}
+              >
+                Bekleyen
+              </button>
+            </div>
+          </div>
 
-          <div className="space-y-4 flex-1">
-            {nodes.map((node) => (
+          <div className="space-y-3 flex-1 overflow-y-auto pr-1">
+            {filteredNodes.map((node) => (
               <div
                 key={node.id}
                 className={`p-4 rounded-2xl border-2 flex items-center justify-between transition-all ${

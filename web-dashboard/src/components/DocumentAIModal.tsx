@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileUp, Sparkles, CheckCircle2, X, MapPin } from 'lucide-react';
+import { FileUp, Sparkles, CheckCircle2, X, MapPin, Trash2 } from 'lucide-react';
 import { ShuttleXApiService } from '../services/api';
 import type { DocumentAINode } from '../types';
 
@@ -13,6 +13,7 @@ interface Props {
 export const DocumentAIModal: React.FC<Props> = ({ isOpen, onClose, onNodesImported }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [extractedNodes, setExtractedNodes] = useState<DocumentAINode[]>([]);
+  const [minConfidence, setMinConfidence] = useState(0.85);
 
   const handleSimulateUpload = async () => {
     setIsAnalyzing(true);
@@ -26,9 +27,15 @@ export const DocumentAIModal: React.FC<Props> = ({ isOpen, onClose, onNodesImpor
     }
   };
 
+  const handleRemoveNode = (id: number | string) => {
+    setExtractedNodes((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const filteredNodes = extractedNodes.filter((n) => n.confidence >= minConfidence);
+
   const handleConfirmImport = () => {
-    if (extractedNodes.length > 0) {
-      onNodesImported?.(extractedNodes);
+    if (filteredNodes.length > 0) {
+      onNodesImported?.(filteredNodes);
     }
     onClose();
   };
@@ -80,16 +87,30 @@ export const DocumentAIModal: React.FC<Props> = ({ isOpen, onClose, onNodesImpor
             </div>
           )}
 
-          {/* Results List */}
+          {/* Results List & Confidence Slider */}
           {extractedNodes.length > 0 && (
             <div className="space-y-4">
-              <h3 className="text-sm font-bold text-slate-300 flex items-center justify-between">
-                <span>ÇIKARILAN ROTA DÜĞÜMLERİ ({extractedNodes.length})</span>
-                <span className="text-xs text-emerald-400 font-medium">POST /api/v5/routes/ingest-document</span>
-              </h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-bold text-slate-300">
+                  ÇIKARILAN ROTA DÜĞÜMLERİ ({filteredNodes.length})
+                </h3>
+
+                <div className="flex items-center gap-2 text-xs text-slate-400">
+                  <span>Min Güven: %{Math.round(minConfidence * 100)}</span>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="0.99"
+                    step="0.05"
+                    value={minConfidence}
+                    onChange={(e) => setMinConfidence(parseFloat(e.target.value))}
+                    className="w-24 accent-purple-500 cursor-pointer"
+                  />
+                </div>
+              </div>
 
               <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {extractedNodes.map((node) => (
+                {filteredNodes.map((node) => (
                   <div key={node.id} className="glass-panel p-3.5 flex items-center justify-between text-xs border-slate-800">
                     <div className="space-y-0.5">
                       <div className="font-bold text-white flex items-center gap-2">
@@ -104,9 +125,12 @@ export const DocumentAIModal: React.FC<Props> = ({ isOpen, onClose, onNodesImpor
                       </p>
                     </div>
 
-                    <div className="text-right text-[10px] text-slate-500">
-                      <span>GPS: {node.geo}</span>
-                    </div>
+                    <button
+                      onClick={() => handleRemoveNode(node.id)}
+                      className="p-1.5 text-slate-500 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -117,7 +141,7 @@ export const DocumentAIModal: React.FC<Props> = ({ isOpen, onClose, onNodesImpor
                 </button>
                 <button onClick={handleConfirmImport} className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-lg shadow-purple-600/30 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>Düğümleri Rotaya Ekle ({extractedNodes.length})</span>
+                  <span>Düğümleri Rotaya Ekle ({filteredNodes.length})</span>
                 </button>
               </div>
             </div>

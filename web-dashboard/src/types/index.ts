@@ -37,6 +37,28 @@ export interface Route {
   progressPercent: number;
 }
 
+export interface Vehicle {
+  id: string;
+  plate: string;
+  model: string;
+  driver: string;
+  phone: string;
+  status: 'ON_ROUTE' | 'WARNING' | 'STANDBY' | 'MAINTENANCE';
+  capacity: string;
+  fuelLevel: number;
+  batteryStatus?: string;
+  rating: number;
+}
+
+export interface SystemAlert {
+  id: string;
+  title: string;
+  text: string;
+  time: string;
+  type: 'alert' | 'success' | 'info';
+  resolved?: boolean;
+}
+
 export interface TelemetryFrame {
   tenantId: string;
   vehicleId: string;

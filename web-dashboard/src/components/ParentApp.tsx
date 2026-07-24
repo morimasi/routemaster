@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { 
   Bus, 
   Clock, 
@@ -9,8 +9,7 @@ import {
   Lock, 
   MessageSquare, 
   UserCheck, 
-  AlertCircle,
-  ChevronLeft
+  AlertCircle
 } from 'lucide-react';
 
 export const ParentApp: React.FC = () => {

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { FileUp, Sparkles, CheckCircle2, AlertCircle, X, MapPin } from 'lucide-react';
+import { FileUp, Sparkles, CheckCircle2, X, MapPin } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;

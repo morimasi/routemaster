@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -10,19 +10,57 @@
     --foreground: 210 40% 98%;
   }
 
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
   body {
     @apply bg-app-background text-foreground font-sans antialiased min-h-screen selection:bg-premium-accent selection:text-white;
     position: relative;
     overflow-x: hidden;
+    line-height: 1.6;
   }
 
-  /* Yumuşak Cam (Glassmorphism) Katmanı İçin Özel Sınıflar Ekliyoruz */
+  /* Glassmorphism Panel — reusable anywhere via .glass-panel */
   .glass-panel {
     @apply bg-premium-surface backdrop-blur-glass border border-premium-border shadow-glass rounded-2xl;
   }
+
+  /* Semantic focus outlines for A11Y */
+  :focus-visible {
+    outline: 2px solid hsl(217 91% 60%);
+    outline-offset: 2px;
+    border-radius: 0.5rem;
+  }
+
+  /* Custom scrollbar (Premium thin rail on Webkit) */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
 }
 
-/* Şoför & Planlayıcı "Dikkat!" Sıçrama Animasyonları (Mikro-Animasyon) */
+/* V4.1 Alert — Heart-beat style pulsing glow for amber badges */
 @keyframes pulse-orange {
   0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); }
   70% { box-shadow: 0 0 0 15px rgba(249, 115, 22, 0); }
@@ -31,4 +69,30 @@
 
 .alert-badge-pulse {
   animation: pulse-orange 2s infinite;
+}
+
+/* Skeleton loader for future async data states */
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: 0.75rem;
+}
+
+/* Smooth page-level transition between role views */
+@layer utilities {
+  .page-transition-enter {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .page-transition-enter-active {
+    opacity: 1;
+    transform: translateY(0);
+    transition: opacity 300ms ease, transform 300ms ease;
+  }
 }

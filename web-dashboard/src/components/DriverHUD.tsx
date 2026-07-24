@@ -38,6 +38,9 @@ export const DriverHUD: React.FC = () => {
     { id: 'n4', studentName: 'Can Demir', stopName: 'Deniz Evleri B Blok', seq: 4, status: 'PENDING', absenceFlagged: false }
   ]);
 
+  // Dinamik olarak mevcut aktif durağı bul (hardcoded index yerine)
+  const currentNode = nodes.find((n) => n.status === 'CURRENT');
+
   const handlePruneConfirm = () => {
     if (!selectedNodeForPrune) return;
     setNodes((prev) =>
@@ -48,6 +51,8 @@ export const DriverHUD: React.FC = () => {
       )
     );
     setSelectedNodeForPrune(null);
+    setLegalTimer(120);
+    setIsTimerRunning(false);
   };
 
   return (
@@ -94,7 +99,7 @@ export const DriverHUD: React.FC = () => {
           <div className="bg-gradient-to-br from-gray-900 to-gray-950 border-4 border-blue-500/40 rounded-3xl p-8 relative overflow-hidden shadow-2xl">
             <div className="flex justify-between items-start">
               <span className="bg-blue-600 text-white font-extrabold px-4 py-1.5 rounded-full text-xs tracking-wider uppercase">
-                SIKTAKİ DURAK #2
+                SIRADAKİ DURAK #{currentNode?.seq ?? '-'}
               </span>
               <div className="flex items-center gap-2 text-blue-400 font-bold text-lg">
                 <Volume2 className="w-6 h-6 animate-pulse" />
@@ -104,15 +109,15 @@ export const DriverHUD: React.FC = () => {
 
             <div className="my-6">
               <h2 className="text-4xl md:text-5xl font-display font-black text-white tracking-tight mb-2">
-                Eymen Altunel
+                {currentNode?.studentName ?? 'Rota Tamamlandı'}
               </h2>
               <p className="text-2xl text-gray-300 font-medium">
-                Cumhuriyet Mah. 4. Sokak No: 12
+                {currentNode?.stopName ?? 'Tüm duraklar geçildi.'}
               </p>
             </div>
 
-            {/* V4.1 ALERT BADGE - VELI DEVAMSIZLIK UYARISI */}
-            {nodes[1].absenceFlagged && (
+            {/* V4.1 ALERT BADGE - VELI DEVAMSIZLIK UYARISI (Dinamik) */}
+            {currentNode?.absenceFlagged && (
               <div className="bg-amber-500/20 border-2 border-amber-500 rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-amber-500/20 alert-badge-pulse">
                 <div className="flex items-center gap-3">
                   <AlertTriangle className="w-8 h-8 text-amber-500 flex-shrink-0" />
@@ -121,13 +126,13 @@ export const DriverHUD: React.FC = () => {
                       ⚠ VELİ BİLDİRİMİ (DURAK DIŞI BIRAKMA UYARISI)
                     </span>
                     <span className="text-gray-200 font-medium text-base">
-                      {nodes[1].absenceNote}
+                      {(currentNode as any).absenceNote}
                     </span>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => setSelectedNodeForPrune(nodes[1])}
+                  onClick={() => setSelectedNodeForPrune(currentNode)}
                   className="bg-amber-500 hover:bg-amber-600 text-black font-black px-6 py-3 rounded-xl text-sm transition-all shadow-md active:scale-95"
                 >
                   DURAĞI ATLA (PRUNE)
@@ -141,14 +146,18 @@ export const DriverHUD: React.FC = () => {
               <button
                 onClick={() => setIsTimerRunning(!isTimerRunning)}
                 className={`flex items-center justify-center gap-3 p-5 rounded-2xl font-black text-lg border-2 transition-all ${
-                  isTimerRunning
+                  legalTimer === 0
+                    ? 'bg-red-600/30 border-red-500 text-red-300'
+                    : isTimerRunning
                     ? 'bg-amber-600/30 border-amber-500 text-amber-300'
                     : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
                 }`}
               >
                 <Clock className="w-7 h-7" />
                 <span>
-                  {isTimerRunning
+                  {legalTimer === 0
+                    ? 'SÜRE DOLDU — ÇOCUK GELMEDİ'
+                    : isTimerRunning
                     ? `KRONOMETRE: ${Math.floor(legalTimer / 60)}:${(legalTimer % 60).toString().padStart(2, '0')}`
                     : '2 DAKİKA BEKLEME BAŞLAT'}
                 </span>

@@ -1,4 +1,4 @@
-import { Route, RouteNode, DocumentAINode } from '../types';
+import type { DocumentAINode } from '../types';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 const CHAT_BASE_URL = import.meta.env.VITE_CHAT_URL || 'http://localhost:4000';
@@ -122,7 +122,7 @@ export class ShuttleXApiService {
   /**
    * Document AI OCR & Vision NER Extraction
    */
-  static async ingestDocumentAI(mockData?: any): Promise<DocumentAINode[]> {
+  static async ingestDocumentAI(): Promise<DocumentAINode[]> {
     await new Promise((res) => setTimeout(res, 1500));
     return [
       { id: 1, address: 'Atatürk Cad. No: 14/A, Kavacık', confidence: 0.98, student: 'Ahmet Yılmaz', geo: '41.0921, 29.0945' },

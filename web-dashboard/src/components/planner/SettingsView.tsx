@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lock, ShieldCheck, Database, Server } from 'lucide-react';
+import { Lock, Database, Server } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 
 export const SettingsView: React.FC = () => {

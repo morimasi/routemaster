@@ -1,0 +1,34 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@400;600;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+  }
+
+  body {
+    @apply bg-app-background text-foreground font-sans antialiased min-h-screen selection:bg-premium-accent selection:text-white;
+    position: relative;
+    overflow-x: hidden;
+  }
+
+  /* Yumuşak Cam (Glassmorphism) Katmanı İçin Özel Sınıflar Ekliyoruz */
+  .glass-panel {
+    @apply bg-premium-surface backdrop-blur-glass border border-premium-border shadow-glass rounded-2xl;
+  }
+}
+
+/* Şoför & Planlayıcı "Dikkat!" Sıçrama Animasyonları (Mikro-Animasyon) */
+@keyframes pulse-orange {
+  0% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0.7); }
+  70% { box-shadow: 0 0 0 15px rgba(249, 115, 22, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(249, 115, 22, 0); }
+}
+
+.alert-badge-pulse {
+  animation: pulse-orange 2s infinite;
+}

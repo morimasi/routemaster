@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
   Bus, 
@@ -11,15 +11,47 @@ import {
   UserCheck, 
   AlertCircle
 } from 'lucide-react';
+import { ShuttleXApiService } from '../services/api';
+import { ChatMessage } from '../types';
 
 export const ParentApp: React.FC = () => {
   const [isAbsenceFlagged, setIsAbsenceFlagged] = useState(false);
   const [activeTab, setActiveTab] = useState<'tracking' | 'nfc' | 'chat'>('tracking');
-  const [chatMessages, setChatMessages] = useState([
+  const [chatRoomStatus, setChatRoomStatus] = useState<string>('ECDH_AES_GCM');
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     { id: 1, sender: 'Öğretmen - Ayşe Hoca', text: 'Eymen derse zamanında katıldı, bilgilendirme.', time: '08:45', isMe: false },
     { id: 2, sender: 'Siz (Veli)', text: 'Teşekkürler Ayşe Hanım.', time: '08:47', isMe: true }
   ]);
   const [newMessage, setNewMessage] = useState('');
+  const [isLoadingApi, setIsLoadingApi] = useState(false);
+
+  // Initialize E2E Encrypted Chat Room on Tab Switch
+  useEffect(() => {
+    if (activeTab === 'chat') {
+      ShuttleXApiService.initChatRoom('t-1001', 'p-9001', 't-7001').then((res) => {
+        if (res?.encryption) setChatRoomStatus(res.encryption);
+      });
+    }
+  }, [activeTab]);
+
+  // Handle Parent Absence Flagging (v4.1)
+  const handleToggleAbsence = async () => {
+    setIsLoadingApi(true);
+    const nextState = !isAbsenceFlagged;
+    setIsAbsenceFlagged(nextState);
+
+    try {
+      await ShuttleXApiService.flagParentAbsence(
+        't-1001',
+        'r-sabah-1',
+        'n2',
+        's-8001',
+        nextState ? 'Veli: Ateşlendi, bugün gelmeyecek.' : 'Veli bildirimi iptal edildi.'
+      );
+    } finally {
+      setIsLoadingApi(false);
+    }
+  };
 
   const handleSendMessage = () => {
     if (!newMessage.trim()) return;
@@ -98,7 +130,8 @@ export const ParentApp: React.FC = () => {
                 </div>
 
                 <button
-                  onClick={() => setIsAbsenceFlagged(!isAbsenceFlagged)}
+                  onClick={handleToggleAbsence}
+                  disabled={isLoadingApi}
                   className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm transition-all duration-300 flex items-center justify-center gap-2 ${
                     isAbsenceFlagged
                       ? 'bg-amber-500 text-black shadow-lg shadow-amber-500/30'
@@ -162,7 +195,7 @@ export const ParentApp: React.FC = () => {
               
               <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-800 text-xs text-center text-slate-400 flex items-center justify-center gap-2 mb-3">
                 <Lock className="w-3.5 h-3.5 text-blue-400" />
-                <span>ECDH-P256 & AES-256-GCM Uçtan Uca Şifreli Sohbet</span>
+                <span>{chatRoomStatus} Uçtan Uca Şifreli Sohbet</span>
               </div>
 
               {/* Chat Log */}

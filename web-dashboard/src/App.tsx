@@ -7,10 +7,8 @@ import {
   Settings, 
   CarFront, 
   BellRing,
-  AlertTriangle,
   Search,
   LogOut,
-  ChevronRight,
   Sparkles,
   Smartphone,
   Navigation
@@ -18,18 +16,41 @@ import {
 import { DriverHUD } from './components/DriverHUD';
 import { ParentApp } from './components/ParentApp';
 import { DocumentAIModal } from './components/DocumentAIModal';
+import { PlannerRadar } from './components/planner/PlannerRadar';
+import type { Route, DocumentAINode } from './types';
 
 function App() {
   const [activeRole, setActiveRole] = useState<'planner' | 'driver' | 'parent'>('planner');
   const [activeTab, setActiveTab] = useState('radar');
   const [isDocumentAIOpen, setIsDocumentAIOpen] = useState(false);
 
-  // V4.1 Uyarı Göstergeli Sahte Rota Verisi
-  const mockRoutes = [
-    { id: '1', name: 'Sabah Bandı - Kavacık', vehicle: '34 AB 1234', status: 'ACTIVE', alerts: 0 },
-    { id: '2', name: 'Anaokulu Öğlen Bağlantısı', vehicle: '34 CD 5678', status: 'WARNING', alerts: 1 },
-    { id: '3', name: 'Akşam Fabrika Servisi', vehicle: '34 EF 9012', status: 'SCHEDULED', alerts: 0 }
-  ];
+  // Dynamic state for routes
+  const [routes, setRoutes] = useState<Route[]>([
+    { id: '1', name: 'Sabah Bandı - Kavacık', vehiclePlate: '34 AB 1234', status: 'ACTIVE', alertsCount: 0, progressPercent: 65, nodes: [] },
+    { id: '2', name: 'Anaokulu Öğlen Bağlantısı', vehiclePlate: '34 CD 5678', status: 'WARNING', alertsCount: 1, progressPercent: 40, nodes: [] },
+    { id: '3', name: 'Akşam Fabrika Servisi', vehiclePlate: '34 EF 9012', status: 'SCHEDULED', alertsCount: 0, progressPercent: 10, nodes: [] }
+  ]);
+
+  // Handler when Document AI imports new extracted nodes
+  const handleNodesImported = (extractedNodes: DocumentAINode[]) => {
+    const newRoute: Route = {
+      id: `ai-route-${Date.now()}`,
+      name: `AI OCR Rota (${extractedNodes.length} Durak)`,
+      vehiclePlate: '34 AI 2026',
+      status: 'ACTIVE',
+      alertsCount: 0,
+      progressPercent: 0,
+      nodes: extractedNodes.map((n, idx) => ({
+        id: `node-${n.id}`,
+        studentName: n.student,
+        stopName: n.address,
+        seq: idx + 1,
+        status: idx === 0 ? 'CURRENT' : 'PENDING',
+        absenceFlagged: false,
+      })),
+    };
+    setRoutes((prev) => [newRoute, ...prev]);
+  };
 
   return (
     <div className="min-h-screen bg-app-background text-foreground flex flex-col font-sans">
@@ -156,64 +177,18 @@ function App() {
               </div>
             </header>
 
-            <div className="grid grid-cols-3 gap-6 h-full">
-              <section className="col-span-1 space-y-4">
-                 <h2 className="text-xl font-display font-semibold mb-4 px-2">Anlık Rota Bağlantıları</h2>
-                 
-                 {mockRoutes.map((route, i) => (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.15 }}
-                      key={route.id}
-                      className="glass-panel p-5 cursor-pointer group hover:bg-white/5 transition-colors relative overflow-hidden"
-                    >
-                      <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-semibold text-gray-100 group-hover:text-blue-400 transition-colors">{route.name}</h3>
-                        <ChevronRight className="w-4 h-4 text-gray-500 group-hover:text-white transition-colors" />
-                      </div>
-                      
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
-                        <CarFront className="w-4 h-4" />
-                        <span>{route.vehicle}</span>
-                      </div>
-
-                      {route.alerts > 0 && (
-                        <div className="absolute top-0 right-0 p-3">
-                           <div className="flex items-center gap-2 bg-amber-500/20 text-amber-400 border border-amber-500/30 px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md alert-badge-pulse">
-                             <AlertTriangle className="w-3.5 h-3.5" />
-                             <span>{route.alerts} İptal İsteği</span>
-                           </div>
-                        </div>
-                      )}
-
-                      <div className="w-full bg-slate-900 h-1.5 rounded-full mt-5 overflow-hidden">
-                        <div className="bg-blue-500 h-full rounded-full w-2/3"></div>
-                      </div>
-                    </motion.div>
-                 ))}
-              </section>
-
-              <section className="col-span-2 glass-panel relative overflow-hidden flex flex-col justify-center items-center">
-                  <div className="absolute inset-0 bg-glass-gradient opacity-50"></div>
-                  
-                  <div className="z-10 text-center space-y-4">
-                     <div className="w-20 h-20 bg-slate-900/80 rounded-full border border-slate-800 flex items-center justify-center mx-auto shadow-2xl">
-                       <MapIcon className="w-10 h-10 text-blue-400" />
-                     </div>
-                     <h2 className="text-3xl font-display font-medium bg-clip-text text-transparent bg-gradient-to-r from-gray-100 to-gray-500">
-                       Canlı Kuşbakışı Radarı
-                     </h2>
-                     <p className="text-gray-400 text-sm max-w-sm mx-auto">
-                       Gelişmiş WebGL harita motoru başlatılıyor. Tüm canlı telemetri verileri WebSocket üzerinden akıtılmaya hazır.
-                     </p>
-                  </div>
-              </section>
+            {/* MODULAR PLANNER RADAR COMPONENT */}
+            <div className="flex-1 overflow-y-auto">
+              <PlannerRadar routes={routes} />
             </div>
           </main>
 
           {/* DOCUMENT AI MODAL */}
-          <DocumentAIModal isOpen={isDocumentAIOpen} onClose={() => setIsDocumentAIOpen(false)} />
+          <DocumentAIModal
+            isOpen={isDocumentAIOpen}
+            onClose={() => setIsDocumentAIOpen(false)}
+            onNodesImported={handleNodesImported}
+          />
         </div>
       )}
     </div>

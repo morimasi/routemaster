@@ -12,14 +12,28 @@ import {
   ArrowRight,
   PhoneCall
 } from 'lucide-react';
+import { ShuttleXApiService } from '../services/api';
+import { RouteNode } from '../types';
 
 export const DriverHUD: React.FC = () => {
   const [isVoiceActive, setIsVoiceActive] = useState(false);
-  const [selectedNodeForPrune, setSelectedNodeForPrune] = useState<any>(null);
-  const [legalTimer, setLegalTimer] = useState(120); // 2 Dakikalık Yasal Bekleme Kronometresi (120sn)
+  const [voiceStatusText, setVoiceStatusText] = useState('Sesli Komut Başlat');
+  const [selectedNodeForPrune, setSelectedNodeForPrune] = useState<RouteNode | null>(null);
+  const [legalTimer, setLegalTimer] = useState(120);
   const [isTimerRunning, setIsTimerRunning] = useState(false);
+  const [isPruningApiLoading, setIsPruningApiLoading] = useState(false);
 
-  // Kronometre Sayacı
+  // Dynamic Route Sequence Nodes
+  const [nodes, setNodes] = useState<RouteNode[]>([
+    { id: 'n1', studentName: 'Ahmet Yılmaz', stopName: 'Atatürk Cad. No:14', seq: 1, status: 'PASSED', absenceFlagged: false },
+    { id: 'n2', studentName: 'Eymen Altunel', stopName: 'Cumhuriyet Mah. 4. Sok', seq: 2, status: 'CURRENT', absenceFlagged: true, absenceNote: 'Veli: Ateşlendi, bugün gelmeyecek.' },
+    { id: 'n3', studentName: 'Zeynep Kaya', stopName: 'Gül Apt. Kat:3', seq: 3, status: 'PENDING', absenceFlagged: false },
+    { id: 'n4', studentName: 'Can Demir', stopName: 'Deniz Evleri B Blok', seq: 4, status: 'PENDING', absenceFlagged: false }
+  ]);
+
+  const currentNode = nodes.find((n) => n.status === 'CURRENT');
+
+  // Legal Timer Countdown Effect
   useEffect(() => {
     let interval: any = null;
     if (isTimerRunning && legalTimer > 0) {
@@ -30,35 +44,82 @@ export const DriverHUD: React.FC = () => {
     return () => clearInterval(interval);
   }, [isTimerRunning, legalTimer]);
 
-  // V4.1 Örnek Durak Dizilimi (Preserved Sequence)
-  const [nodes, setNodes] = useState([
-    { id: 'n1', studentName: 'Ahmet Yılmaz', stopName: 'Atatürk Cad. No:14', seq: 1, status: 'PASSED', absenceFlagged: false },
-    { id: 'n2', studentName: 'Eymen Altunel', stopName: 'Cumhuriyet Mah. 4. Sok', seq: 2, status: 'CURRENT', absenceFlagged: true, absenceNote: 'Veli: Ateşlendi, bugün gelmeyecek.' },
-    { id: 'n3', studentName: 'Zeynep Kaya', stopName: 'Gül Apt. Kat:3', seq: 3, status: 'PENDING', absenceFlagged: false },
-    { id: 'n4', studentName: 'Can Demir', stopName: 'Deniz Evleri B Blok', seq: 4, status: 'PENDING', absenceFlagged: false }
-  ]);
-
-  // Dinamik olarak mevcut aktif durağı bul (hardcoded index yerine)
-  const currentNode = nodes.find((n) => n.status === 'CURRENT');
-
-  const handlePruneConfirm = () => {
+  // Execute Real API Call for V4.1 Driver Prune
+  const handlePruneConfirm = async () => {
     if (!selectedNodeForPrune) return;
-    setNodes((prev) =>
-      prev.map((node) =>
-        node.id === selectedNodeForPrune.id
-          ? { ...node, status: 'SKIPPED_BY_DRIVER', absenceFlagged: false }
-          : node
-      )
-    );
-    setSelectedNodeForPrune(null);
+    setIsPruningApiLoading(true);
+
+    try {
+      // Call Backend API
+      await ShuttleXApiService.executeDriverPrune('t-1001', 'r-sabah-1', selectedNodeForPrune.id, 'd-5001');
+
+      // Update Node State & Advance Route
+      setNodes((prev) => {
+        const updated = prev.map((node) =>
+          node.id === selectedNodeForPrune.id
+            ? { ...node, status: 'SKIPPED_BY_DRIVER' as const, absenceFlagged: false }
+            : node
+        );
+        // Find next pending node and make it current
+        const nextPending = updated.find((n) => n.status === 'PENDING');
+        if (nextPending && selectedNodeForPrune.status === 'CURRENT') {
+          return updated.map((n) => (n.id === nextPending.id ? { ...n, status: 'CURRENT' as const } : n));
+        }
+        return updated;
+      });
+
+      setSelectedNodeForPrune(null);
+      setLegalTimer(120);
+      setIsTimerRunning(false);
+    } finally {
+      setIsPruningApiLoading(false);
+    }
+  };
+
+  // Student Boarded Confirmation (Advance Stop)
+  const handleBoardStudent = () => {
+    if (!currentNode) return;
+
+    setNodes((prev) => {
+      const updated = prev.map((n) => (n.id === currentNode.id ? { ...n, status: 'PASSED' as const } : n));
+      const nextPending = updated.find((n) => n.status === 'PENDING');
+      if (nextPending) {
+        return updated.map((n) => (n.id === nextPending.id ? { ...n, status: 'CURRENT' as const } : n));
+      }
+      return updated;
+    });
+
     setLegalTimer(120);
     setIsTimerRunning(false);
+  };
+
+  // Real Voice Intent Handler Simulation
+  const handleVoiceCommand = async () => {
+    if (isVoiceActive) {
+      setIsVoiceActive(false);
+      setVoiceStatusText('Sesli Komut Başlat');
+      return;
+    }
+
+    setIsVoiceActive(true);
+    setVoiceStatusText('DINLENIYOR: "ShuttleX..."');
+
+    // Simulate speech intent recognition call
+    setTimeout(async () => {
+      const res = await ShuttleXApiService.parseVoiceIntent('ShuttleX Eymen duragını atla');
+      if (res.resolved_intent.action === 'EXECUTE_PRUNE') {
+        const eymenNode = nodes.find((n) => n.studentName.includes('Eymen'));
+        if (eymenNode) setSelectedNodeForPrune(eymenNode);
+      }
+      setIsVoiceActive(false);
+      setVoiceStatusText('Sesli Komut Başlat');
+    }, 2500);
   };
 
   return (
     <div className="min-h-screen bg-black text-white p-4 md:p-6 font-sans flex flex-col justify-between select-none">
       
-      {/* HUD Header Bar - High Contrast & Status Indicators */}
+      {/* HUD Header Bar - High Contrast */}
       <header className="flex justify-between items-center bg-gray-900/90 border-2 border-gray-800 rounded-3xl p-4 md:p-6 shadow-2xl">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 bg-blue-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-600/50">
@@ -75,9 +136,9 @@ export const DriverHUD: React.FC = () => {
           </div>
         </div>
 
-        {/* Dynamic Voice AI Status Badge */}
+        {/* Dynamic Voice AI Status Button */}
         <button
-          onClick={() => setIsVoiceActive(!isVoiceActive)}
+          onClick={handleVoiceCommand}
           className={`flex items-center gap-3 px-6 py-3.5 rounded-2xl font-bold text-sm transition-all duration-300 ${
             isVoiceActive
               ? 'bg-red-600 text-white shadow-lg shadow-red-600/60 animate-bounce'
@@ -85,7 +146,7 @@ export const DriverHUD: React.FC = () => {
           }`}
         >
           <Mic className="w-5 h-5" />
-          <span>{isVoiceActive ? 'DINLENIYOR: "ShuttleX..."' : 'Sesli Komut Başlat'}</span>
+          <span>{voiceStatusText}</span>
         </button>
       </header>
 
@@ -103,20 +164,20 @@ export const DriverHUD: React.FC = () => {
               </span>
               <div className="flex items-center gap-2 text-blue-400 font-bold text-lg">
                 <Volume2 className="w-6 h-6 animate-pulse" />
-                <span>300 METRE KALDI</span>
+                <span>{currentNode ? '300 METRE KALDI' : 'ROTA BİTTİ'}</span>
               </div>
             </div>
 
             <div className="my-6">
               <h2 className="text-4xl md:text-5xl font-display font-black text-white tracking-tight mb-2">
-                {currentNode?.studentName ?? 'Rota Tamamlandı'}
+                {currentNode?.studentName ?? 'Tüm Duraklar Tamamlandı 🎉'}
               </h2>
               <p className="text-2xl text-gray-300 font-medium">
-                {currentNode?.stopName ?? 'Tüm duraklar geçildi.'}
+                {currentNode?.stopName ?? 'Servis aracı okula ulaştı.'}
               </p>
             </div>
 
-            {/* V4.1 ALERT BADGE - VELI DEVAMSIZLIK UYARISI (Dinamik) */}
+            {/* V4.1 ALERT BADGE - VELI DEVAMSIZLIK UYARISI */}
             {currentNode?.absenceFlagged && (
               <div className="bg-amber-500/20 border-2 border-amber-500 rounded-2xl p-4 flex items-center justify-between shadow-lg shadow-amber-500/20 alert-badge-pulse">
                 <div className="flex items-center gap-3">
@@ -126,7 +187,7 @@ export const DriverHUD: React.FC = () => {
                       ⚠ VELİ BİLDİRİMİ (DURAK DIŞI BIRAKMA UYARISI)
                     </span>
                     <span className="text-gray-200 font-medium text-base">
-                      {(currentNode as any).absenceNote}
+                      {currentNode.absenceNote}
                     </span>
                   </div>
                 </div>
@@ -141,53 +202,63 @@ export const DriverHUD: React.FC = () => {
             )}
 
             {/* Bottom Actions: 2 Min Timer & Board Confirmation */}
-            <div className="grid grid-cols-2 gap-4 mt-8">
-              {/* Yasal Bekleme Kronometresi (2 Dakika Rule) */}
-              <button
-                onClick={() => setIsTimerRunning(!isTimerRunning)}
-                className={`flex items-center justify-center gap-3 p-5 rounded-2xl font-black text-lg border-2 transition-all ${
-                  legalTimer === 0
-                    ? 'bg-red-600/30 border-red-500 text-red-300'
-                    : isTimerRunning
-                    ? 'bg-amber-600/30 border-amber-500 text-amber-300'
-                    : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
-                }`}
-              >
-                <Clock className="w-7 h-7" />
-                <span>
-                  {legalTimer === 0
-                    ? 'SÜRE DOLDU — ÇOCUK GELMEDİ'
-                    : isTimerRunning
-                    ? `KRONOMETRE: ${Math.floor(legalTimer / 60)}:${(legalTimer % 60).toString().padStart(2, '0')}`
-                    : '2 DAKİKA BEKLEME BAŞLAT'}
-                </span>
-              </button>
+            {currentNode && (
+              <div className="grid grid-cols-2 gap-4 mt-8">
+                <button
+                  onClick={() => setIsTimerRunning(!isTimerRunning)}
+                  className={`flex items-center justify-center gap-3 p-5 rounded-2xl font-black text-lg border-2 transition-all ${
+                    legalTimer === 0
+                      ? 'bg-red-600/30 border-red-500 text-red-300'
+                      : isTimerRunning
+                      ? 'bg-amber-600/30 border-amber-500 text-amber-300'
+                      : 'bg-gray-800 border-gray-700 text-gray-300 hover:bg-gray-700'
+                  }`}
+                >
+                  <Clock className="w-7 h-7" />
+                  <span>
+                    {legalTimer === 0
+                      ? 'SÜRE DOLDU — ÇOCUK GELMEDİ'
+                      : isTimerRunning
+                      ? `KRONOMETRE: ${Math.floor(legalTimer / 60)}:${(legalTimer % 60).toString().padStart(2, '0')}`
+                      : '2 DAKİKA BEKLEME BAŞLAT'}
+                  </span>
+                </button>
 
-              <button className="bg-emerald-600 hover:bg-emerald-500 text-white font-black p-5 rounded-2xl text-lg flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/40 active:scale-95 transition-all">
-                <CheckCircle2 className="w-7 h-7" />
-                <span>ÖĞRENCİ BİNDİ (ONAYLA)</span>
-              </button>
-            </div>
+                <button
+                  onClick={handleBoardStudent}
+                  className="bg-emerald-600 hover:bg-emerald-500 text-white font-black p-5 rounded-2xl text-lg flex items-center justify-center gap-3 shadow-lg shadow-emerald-600/40 active:scale-95 transition-all"
+                >
+                  <CheckCircle2 className="w-7 h-7" />
+                  <span>ÖĞRENCİ BİNDİ (ONAYLA)</span>
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Quick SOS & Emergency */}
           <div className="flex gap-4">
-            <button className="flex-1 bg-red-950/60 hover:bg-red-900 border-2 border-red-600 text-red-400 font-bold p-4 rounded-2xl flex items-center justify-center gap-3 transition-colors">
+            <button
+              onClick={() => alert('🚨 ACİL DURUM UYARISI MERKEZE İLETİLDİ!')}
+              className="flex-1 bg-red-950/60 hover:bg-red-900 border-2 border-red-600 text-red-400 font-bold p-4 rounded-2xl flex items-center justify-center gap-3 transition-colors"
+            >
               <ShieldAlert className="w-6 h-6 text-red-500" />
               <span>ACİL DURUM / SOS ARAMASI</span>
             </button>
-            <button className="bg-gray-900 border border-gray-800 text-gray-300 hover:text-white font-bold p-4 rounded-2xl flex items-center gap-2">
+            <button
+              onClick={() => alert('📞 Merkez (0850 555 0000) Aranıyor...')}
+              className="bg-gray-900 border border-gray-800 text-gray-300 hover:text-white font-bold p-4 rounded-2xl flex items-center gap-2"
+            >
               <PhoneCall className="w-5 h-5 text-blue-400" />
               <span>MERKEZİ ARA</span>
             </button>
           </div>
         </div>
 
-        {/* Right 4 Cols: Route Sequence Node Timeline (Preserved Order) */}
+        {/* Right 4 Cols: Route Sequence Node Timeline */}
         <div className="lg:col-span-4 bg-gray-900/80 border-2 border-gray-800 rounded-3xl p-6 flex flex-col">
           <h3 className="text-lg font-display font-extrabold text-gray-300 mb-6 flex items-center justify-between">
             <span>DURAK SIRALAMASI</span>
-            <span className="text-xs bg-gray-800 text-gray-400 px-3 py-1 rounded-full">4 Durak</span>
+            <span className="text-xs bg-gray-800 text-gray-400 px-3 py-1 rounded-full">{nodes.length} Durak</span>
           </h3>
 
           <div className="space-y-4 flex-1">
@@ -256,22 +327,24 @@ export const DriverHUD: React.FC = () => {
               </div>
 
               <div className="bg-gray-950 p-4 rounded-xl text-left border border-gray-800 text-xs text-gray-400 space-y-1">
-                <p><strong className="text-gray-200">Veli Notu:</strong> {selectedNodeForPrune.absenceNote}</p>
+                <p><strong className="text-gray-200">Veli Notu:</strong> {selectedNodeForPrune.absenceNote || 'Veli devamsızlık bildirdi'}</p>
                 <p><strong className="text-gray-200">Yetki:</strong> Sürücü Manuel Onayı (v4.1 Şeffaf İşaretleme)</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4 pt-2">
                 <button
                   onClick={() => setSelectedNodeForPrune(null)}
-                  className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-4 rounded-xl transition-colors"
+                  disabled={isPruningApiLoading}
+                  className="bg-gray-800 hover:bg-gray-700 text-white font-bold py-4 rounded-xl transition-colors disabled:opacity-50"
                 >
                   İPTAL
                 </button>
                 <button
                   onClick={handlePruneConfirm}
-                  className="bg-amber-500 hover:bg-amber-600 text-black font-black py-4 rounded-xl shadow-lg shadow-amber-500/30 transition-all flex items-center justify-center gap-2"
+                  disabled={isPruningApiLoading}
+                  className="bg-amber-500 hover:bg-amber-600 text-black font-black py-4 rounded-xl shadow-lg shadow-amber-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
-                  <span>DURAĞI ATLA</span>
+                  <span>{isPruningApiLoading ? 'HESAPLANIYOR...' : 'DURAĞI ATLA'}</span>
                   <ArrowRight className="w-5 h-5" />
                 </button>
               </div>

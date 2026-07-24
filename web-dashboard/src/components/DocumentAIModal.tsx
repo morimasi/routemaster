@@ -1,29 +1,36 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { FileUp, Sparkles, CheckCircle2, X, MapPin } from 'lucide-react';
+import { ShuttleXApiService } from '../services/api';
+import { DocumentAINode } from '../types';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  onNodesImported?: (nodes: DocumentAINode[]) => void;
 }
 
-export const DocumentAIModal: React.FC<Props> = ({ isOpen, onClose }) => {
+export const DocumentAIModal: React.FC<Props> = ({ isOpen, onClose, onNodesImported }) => {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
-  const [extractedNodes, setExtractedNodes] = useState<any[]>([]);
+  const [extractedNodes, setExtractedNodes] = useState<DocumentAINode[]>([]);
 
-  const handleSimulateUpload = () => {
+  const handleSimulateUpload = async () => {
     setIsAnalyzing(true);
     setExtractedNodes([]);
 
-    // Simüle Vision AI Analiz Gecikmesi (OCR/VLM Processing)
-    setTimeout(() => {
+    try {
+      const nodes = await ShuttleXApiService.ingestDocumentAI();
+      setExtractedNodes(nodes);
+    } finally {
       setIsAnalyzing(false);
-      setExtractedNodes([
-        { id: 1, address: 'Atatürk Cad. No: 14/A, Kavacık', confidence: 0.98, student: 'Ahmet Yılmaz', geo: '41.0921, 29.0945' },
-        { id: 2, address: 'Cumhuriyet Mah. 4. Sok No: 12', confidence: 0.95, student: 'Eymen Altunel', geo: '41.0950, 29.0980' },
-        { id: 3, address: 'Deniz Evleri B Blok Kat:2', confidence: 0.84, student: 'Can Demir (Geocoding Fallback)', geo: '41.0988, 29.1012' }
-      ]);
-    }, 2000);
+    }
+  };
+
+  const handleConfirmImport = () => {
+    if (extractedNodes.length > 0) {
+      onNodesImported?.(extractedNodes);
+    }
+    onClose();
   };
 
   if (!isOpen) return null;
@@ -108,7 +115,7 @@ export const DocumentAIModal: React.FC<Props> = ({ isOpen, onClose }) => {
                 <button onClick={onClose} className="px-5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold">
                   İptal
                 </button>
-                <button onClick={onClose} className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-lg shadow-purple-600/30 flex items-center gap-2">
+                <button onClick={handleConfirmImport} className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-xs font-bold text-white shadow-lg shadow-purple-600/30 flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4" />
                   <span>Düğümleri Rotaya Ekle ({extractedNodes.length})</span>
                 </button>

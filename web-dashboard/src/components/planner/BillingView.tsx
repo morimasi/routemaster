@@ -1,6 +1,5 @@
 import React from 'react';
-import { motion } from 'framer-motion';
-import { CreditCard, CheckCircle2, Zap, ShieldCheck, Download, ArrowUpRight } from 'lucide-react';
+import { CreditCard, CheckCircle2, Download, ArrowUpRight } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 
 export const BillingView: React.FC = () => {

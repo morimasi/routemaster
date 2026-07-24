@@ -72,8 +72,12 @@ export const PhotoRouteModule: React.FC<PhotoRouteModuleProps> = ({ isOpen, onCl
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 z-50"
+    >
         <motion.div
           initial={{ opacity: 0, scale: 0.92, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -202,7 +206,6 @@ export const PhotoRouteModule: React.FC<PhotoRouteModuleProps> = ({ isOpen, onCl
             </div>
           )}
         </motion.div>
-      </div>
-    </AnimatePresence>
+      </motion.div>
   );
 };

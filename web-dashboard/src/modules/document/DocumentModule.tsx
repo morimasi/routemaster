@@ -79,14 +79,18 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ isOpen, onClose 
   if (!isOpen) return null;
 
   return (
-    <AnimatePresence>
-      <div className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 z-50">
-        <motion.div
-          initial={{ opacity: 0, scale: 0.92, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.92, y: 20 }}
-          className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl text-white relative"
-        >
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 z-50"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.92, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.92, y: 20 }}
+        className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl text-white relative"
+      >
           <div className="p-3 sm:p-6 border-b border-slate-800 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -174,7 +178,12 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ isOpen, onClose 
 
           <AnimatePresence>
             {selectedDoc && (
-              <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[60]">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-[60]"
+              >
                 <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl max-w-md w-full p-4 sm:p-6 shadow-2xl text-white relative">
                   <button onClick={() => setSelectedDoc(null)} className="absolute top-4 right-4 text-slate-400 hover:text-white"><X className="w-4 h-4" /></button>
                   <div className="flex items-center gap-3 mb-4 sm:mb-6">
@@ -195,11 +204,10 @@ export const DocumentModule: React.FC<DocumentModuleProps> = ({ isOpen, onClose 
                     <button className="flex-1 py-2 sm:py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-[9px] sm:text-xs font-bold flex items-center justify-center gap-1.5"><Eye className="w-3 h-3" /> Gör</button>
                   </div>
                 </motion.div>
-              </div>
+              </motion.div>
             )}
           </AnimatePresence>
         </motion.div>
-      </div>
-    </AnimatePresence>
+      </motion.div>
   );
 };

@@ -12,6 +12,7 @@ import {
   Sparkles,
   Smartphone,
   Navigation,
+  CreditCard,
   X,
   AlertTriangle,
   CheckCircle2
@@ -23,11 +24,12 @@ import { PlannerRadar } from './components/planner/PlannerRadar';
 import { SystemDashboard } from './components/planner/SystemDashboard';
 import { FleetManagement } from './components/planner/FleetManagement';
 import { SettingsView } from './components/planner/SettingsView';
+import { BillingView } from './components/planner/BillingView';
 import type { Route, DocumentAINode } from './types';
 
 function App() {
   const [activeRole, setActiveRole] = useState<'planner' | 'driver' | 'parent'>('planner');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'radar' | 'fleet' | 'settings'>('radar');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'radar' | 'fleet' | 'settings' | 'billing'>('radar');
   const [isDocumentAIOpen, setIsDocumentAIOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -149,6 +151,7 @@ function App() {
                 <SidebarItem icon={<MapIcon />} label="Canlı Radar" isActive={activeTab === 'radar'} onClick={() => setActiveTab('radar')} />
                 <SidebarItem icon={<Users />} label="Filo & Şoförler" isActive={activeTab === 'fleet'} onClick={() => setActiveTab('fleet')} />
                 <SidebarItem icon={<Settings />} label="Kurum Ayarları" isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
+                <SidebarItem icon={<CreditCard />} label="Abonelik & Fatura" isActive={activeTab === 'billing'} onClick={() => setActiveTab('billing')} />
               </nav>
 
               {/* DOCUMENT AI TRIGGER BUTTON */}
@@ -249,6 +252,7 @@ function App() {
               {activeTab === 'radar' && <PlannerRadar routes={filteredRoutes} />}
               {activeTab === 'fleet' && <FleetManagement />}
               {activeTab === 'settings' && <SettingsView />}
+              {activeTab === 'billing' && <BillingView />}
             </div>
           </main>
 

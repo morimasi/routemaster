@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Map as MapIcon, CarFront, ChevronRight, AlertTriangle, Cpu, CheckCircle2 } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Map as MapIcon, CarFront, ChevronRight, AlertTriangle, Cpu, CheckCircle2, X, Navigation, Clock, User } from 'lucide-react';
 import { GlassCard } from '../ui/GlassCard';
 import { Badge } from '../ui/Badge';
 import type { Route } from '../../types';
@@ -11,10 +11,11 @@ interface PlannerRadarProps {
   onSelectRoute?: (route: Route) => void;
 }
 
-export const PlannerRadar: React.FC<PlannerRadarProps> = ({ routes, onSelectRoute }) => {
+export const PlannerRadar: React.FC<PlannerRadarProps> = ({ routes }) => {
   const [filter, setFilter] = useState<'ALL' | 'ALERTS' | 'ACTIVE'>('ALL');
   const [isOptimizing, setIsOptimizing] = useState(false);
   const [optimizationResult, setOptimizationResult] = useState<string | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<Route | null>(null);
 
   const filteredRoutes = routes.filter((r) => {
     if (filter === 'ALERTS') return r.alertsCount > 0;
@@ -84,7 +85,7 @@ export const PlannerRadar: React.FC<PlannerRadarProps> = ({ routes, onSelectRout
             transition={{ delay: i * 0.12 }}
             key={route.id}
           >
-            <GlassCard onClick={() => onSelectRoute?.(route)} className="relative overflow-hidden group">
+            <GlassCard onClick={() => setSelectedRoute(route)} className="relative overflow-hidden group">
               <div className="flex justify-between items-start mb-3">
                 <h3 className="font-semibold text-gray-100 group-hover:text-blue-400 transition-colors">
                   {route.name}
@@ -141,6 +142,94 @@ export const PlannerRadar: React.FC<PlannerRadarProps> = ({ routes, onSelectRout
         <div className="absolute left-[-20%] top-[40%] w-[140%] h-[1px] bg-gradient-to-r from-transparent via-blue-500/20 to-transparent transform rotate-12 pointer-events-none"></div>
         <div className="absolute left-[-20%] top-[60%] w-[140%] h-[1px] bg-gradient-to-r from-transparent via-slate-700/30 to-transparent transform -rotate-12 pointer-events-none"></div>
       </section>
+
+      {/* ROUTE DETAILS MODAL */}
+      <AnimatePresence>
+        {selectedRoute && (
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-slate-900 border border-slate-800 rounded-3xl max-w-xl w-full p-6 shadow-2xl space-y-5 text-white relative"
+            >
+              <button onClick={() => setSelectedRoute(null)} className="absolute top-5 right-5 text-slate-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-blue-600/20 border border-blue-500/30 rounded-xl text-blue-400">
+                  <Navigation className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">{selectedRoute.name}</h3>
+                  <p className="text-xs text-slate-400">Plaka: {selectedRoute.vehiclePlate} | İlerleme: %{selectedRoute.progressPercent}</p>
+                </div>
+              </div>
+
+              {/* Telemetry Details */}
+              <div className="grid grid-cols-3 gap-3 bg-slate-950 p-4 rounded-xl border border-slate-800 text-center text-xs">
+                <div>
+                  <span className="text-slate-500 block">Sürücü</span>
+                  <span className="font-bold text-white flex items-center justify-center gap-1 mt-0.5">
+                    <User className="w-3.5 h-3.5 text-blue-400" /> Mehmet Ş.
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-slate-500 block">Sinyal Gecikmesi</span>
+                  <span className="font-bold text-emerald-400 flex items-center justify-center gap-1 mt-0.5">
+                    <Clock className="w-3.5 h-3.5" /> 4ms (Live)
+                  </span>
+                </div>
+
+                <div>
+                  <span className="text-slate-500 block">İptal Uyarıları</span>
+                  <span className="font-bold text-amber-400 flex items-center justify-center gap-1 mt-0.5">
+                    <AlertTriangle className="w-3.5 h-3.5" /> {selectedRoute.alertsCount} İstek
+                  </span>
+                </div>
+              </div>
+
+              {/* Node Sequence Preview */}
+              <div>
+                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Durak Sıralaması ve ETA Matrisi</h4>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-1 text-xs">
+                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                      <span className="font-bold text-white">#1 Ahmet Yılmaz</span>
+                      <span className="text-[10px] text-slate-400 block">Atatürk Cad. No:14</span>
+                    </div>
+                    <span className="text-[10px] text-emerald-400 bg-emerald-950 px-2 py-0.5 rounded border border-emerald-500/30">Tamamlandı</span>
+                  </div>
+
+                  <div className="p-3 bg-blue-950/40 rounded-xl border border-blue-500/40 flex justify-between items-center">
+                    <div>
+                      <span className="font-bold text-white">#2 Eymen Altunel</span>
+                      <span className="text-[10px] text-slate-400 block">Cumhuriyet Mah. 4. Sok (Veli İptal Uyarısı)</span>
+                    </div>
+                    <span className="text-[10px] text-amber-400 bg-amber-950 px-2 py-0.5 rounded border border-amber-500/30">Sıradaki Durak</span>
+                  </div>
+
+                  <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex justify-between items-center">
+                    <div>
+                      <span className="font-bold text-white">#3 Zeynep Kaya</span>
+                      <span className="text-[10px] text-slate-400 block">Gül Apt. Kat:3</span>
+                    </div>
+                    <span className="text-[10px] text-slate-500">Bekliyor (ETA 8 Dk)</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-2">
+                <button onClick={() => setSelectedRoute(null)} className="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 text-xs font-bold text-white shadow-lg shadow-blue-600/30">
+                  Tamam
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
 
     </div>
   );

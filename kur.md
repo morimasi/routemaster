@@ -1,29 +1,29 @@
 # ShuttleX Enterprise Suite v5.0 — Kapsamlı Mimari, Yazılım Geliştirme ve Operasyonel Şartname Dokümanı
 
-> **Doküman Sürümü:** v5.0 Master Specifications (v4.0 & v4.1 Sistem Eklentileri Entegre Edilmiş Nihai Sürüm)
+> **Doküman Sürümü:** v5.0 Master Specifications (v4.0 ve v4.1 Sistem Eklentileri Entegre Edilmiş Nihai Sürüm)
 > **Hedef Kitle:** Kıdemli Yazılım Mimarları, Backend/Frontend/Mobil Mühendisleri, Veri Mühendisleri, DevSecOps ve Ürün Yöneticileri
-> **Platform Tanımı:** Küresel ölçekte, çoklu dil ve para birimi destekli, ultra-premium, multi-tenant (kurumsal yalıtımlı), yapay zeka ve ses asistanı destekli, QR/NFC entegrasyonlu kapalı devre servis ve lojistik otomasyon ekosistemi.
+> **Platform Tanımı:** Küresel ölçekte, çoklu dil ve para birimi destekli, ultra-premium, multi-tenant (çoklu kurumsal yalıtımlı), yapay zeka, yönlendirilmiş graf (Directed Graph) rota budama destekli, ses asistanı ve QR/NFC özellikli tamamen otonom servis otomasyon ekosistemi.
 
 ---
 
 ## 1. Genel Bakış ve Mimari Felsefe
 
-ShuttleX Enterprise Suite; okullar, şirketler ve lojistik filoları için geliştirilmiş otonom durak optimizasyonu, canlı telemetri takibi, katı hiyerarşik iletişim, yapay zeka destekli operasyon ve entegre finans platformudur.
+ShuttleX Enterprise Suite; okullar, şirketler ve lojistik filoları için geliştirilmiş; makine öğrenimi ile öngörüsel rota optimizasyonu yapan, mikro saniyeler düzeyinde canlı telemetri takibi, katı kurallara dayalı kurumsal mesajlaşma mimarisi ve entegre ödeme/finans katmanı sunan premium bir yazılım platformudur.
 
-### 1.1. Sürüm Evrimi ve v4.1 Hibrit Budama Felsefesi
-* **v4.0 Altyapısı:** Olay güdümlü mikroservisler, gRPC telemetri toplama, OCR/VLM ile dokümandan adres çıkarma, çift yönlü Voice AI ve tam otonom rota budama mekanizması.
-* **v4.1 Mimari Düzeltmesi (Sürücü Odaklı Manuel Budama):** Tam otonom sistemlerde velinin anlık iptal yapması veya yanlışlıkla butona basması durumunda rotanın şoförün radarı dışında değişmesi sahada karışıklığa yol açmıştır. v5.0 ile mimari **"Otonom Müdahaleden -> Şeffaf İşaretleme ve Şoför Otoritesine"** geçirilmiştir:
-  1. Veli "Çocuğum Bugün Binmeyecek" dediğinde durak **rotadan silinmez**, sırası (sequence) korunur.
-  2. Durağın üzerine canlı haritada turuncu **Dikkat Rozeti (Alert Badge)** yerleştirilir.
-  3. Rota budama (`EXECUTE_PRUNE`) yetkisi **yalnızca Şoför HUD ekranına ve Sürücü Sesli Komutuna** verilmiştir.
+### 1.1. Sürüm Evrimi ve v4.1 Hibrit Rota Budama Felsefesi
+* **v4.0 Çekirdeği:** Olay güdümlü mikroservisler, gRPC telemetri toplama, OCR/VLM (Görsel Zeka) ile dokümandan akıllı adres çıkarımı ve tam otonom yapay zekalı rota oluşturma.
+* **v4.1 Şoför Otoritesine Bağlı Manuel Budama (Sürücü Merkezli Yaklaşım):** Yalnızca otonom sistemlerde velinin devamsızlık bildiriminin (Bazen yanlışlıkla) şoförden habersiz rotayı değiştirmesi sahada ciddi sorunlar yaratmıştır. V5.0 ile otomasyon körü körüne kararlar almak yerine, **Operasyonel Güvenlik ve Şoför Denetimine** geçmiştir:
+  1. **Rotanın Sabit Kalması (Preserved Sequence):** Veli "Çocuğum okula gelmeyecek" tuşuna bastığında, durak **harita grafiğinden (Directed Graph) doğrudan SİLİNMEZ**, durak sırası (Sequence Number) korunur.
+  2. **Görsel Uyarı Katmanı:** İlgili durağın üzerine gerçek zamanlı yanıp sönen dikkat çekici turuncu/kırmızı bir **Ünlem Rozeti (Alert Badge)** yerleştirilir.
+  3. **Şoförün Tekelinde Rota Kesinleştirme (`EXECUTE_PRUNE`):** Durağı tamamen rota dışına çıkarma veya atlama yetkisi sadece Şoför HUD (Head-Up Display) ekranına ve Sesli Asistana (Voice AI) bağlanmıştır. Şoför durağı atladığı an sistem arkadaki duraklar için yeni ETA matrisini (450 ms içinde) yeniden hesaplar.
 
 ---
 
-## 2. Dağıtık Mikroservis Mimarisi ve Ağ Topolojisi
+## 2. Dağıtık Mikroservis Mimarisi, Ağ Topolojisi ve Veri Boru Hattı
 
-Sistem, yüksek erişilebilirlik, felaket kurtarma ve coğrafi yedeklilik sağlamak üzere tamamen izole konteyner (K8s) mimarisinde çalışır.
+Sistem, monolitik yapıdan arındırılmış; ölçeklenebilirliği (Scalability) ve hata toleransını (Fault Tolerance) maksimuma çıkaran, sıfır kesinti ve yüksek trafikli olay güdümlü (Event-Driven) Kubernetes (K8s) mimarisinde çalışır.
 
-### 2.1. Genel Topoloji
+### 2.1. Ağ ve Servis Topolojisi
 
 ```text
                                ┌────────────────────────────────────────────────────────┐
@@ -44,91 +44,87 @@ Sistem, yüksek erişilebilirlik, felaket kurtarma ve coğrafi yedeklilik sağla
          ▼                       ▼                      ▼                       ▼                       ▼
 ┌───────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
 │                                Apache Kafka Event Bus (Log-based Streaming Bus)                               │
-│ Topics: telemetry.live | attendance.events | voice.intents | chat.msgs | billing.events | push.notifications  │
+│ Topics: delivery.telemetry.live | attendance.events | voice.intents | chat.msgs | billing.events | push.notifications  │
 └───────────────────────────────────────────────┬───────────────────────────────────────────────────────────────┘
                                                 │
          ┌───────────────────────┬──────────────┴───────┬───────────────────────┬───────────────────────┐
          ▼                       ▼                      ▼                       ▼                       ▼
 ┌─────────────────┐     ┌─────────────────┐    ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │ Redis Cluster   │     │ PostgreSQL (16) │    │ TimescaleDB     │     │ MongoDB         │     │ ElasticSearch   │
-│ (In-memory TTL) │     │ PostGIS (Spatial│    │ (Telemetry Logs)│     │ (Chat Archives) │     │ (Audit Logs)    │
+│ (TTL 60s Buffer)│     │ PostGIS Spatial │    │ (Telemetry Logs)│     │ (Chat Archives) │     │ (Audit Logs)    │
 └─────────────────┘     └─────────────────┘    └─────────────────┘     └─────────────────┘     └─────────────────┘
 ```
 
-### 2.2. Veri Boru Hattı (Data Pipeline) Consumer Grupları
-
-Telemetry Ingestion Service üzerinden Kafka'ya (`telemetry.live` topiğine) dökülen anlık konum verileri **iki bağımsız Consumer Group** tarafından işlenir:
-1. **Real-time Broadcasters (WebSocket/Node.js):** Konum verisini gecikmesiz olarak ilgili odalardaki (tenant+route bazlı) Admin, Planlayıcı ve Velilerin ekranlarına çizer.
-2. **Persistent Loggers (Go/TimescaleDB):** Geriye dönük raporlama (Audit), makine öğrenimi modellerinin eğitilmesi ve şikayet çözümleri için veriyi batch'ler halinde (örn: her 5 saniyede bir) TimescaleDB'ye kalıcı olarak yazar. Bu izolasyon, I/O darboğazlarını (bottleneck) engeller.
-
----
-
-## 3. Ekran Rolleri (UI/UX) ve İstemci Mimarisi
-
-Uç birimler, her rolün ergonomisine özel olarak optimize edilmiştir.
-
-### 3.1. İstemci Teknoloji Yığını
-* **Web Dashboard (Admin / Planlayıcı):** React.js + TypeScript, Redux Toolkit, Framer Motion (Glassmorphism), Mapbox GL JS veya Deck.gl (Yüksek veri yoğunluklu haritalar).
-* **Şoför Ekranı (Driver HUD):** Flutter (veya React Native), yüksek kontrastlı Dark Mode, devasa buton yapıları, Offline-first local DB (SQLite/Isar), Background Geolocation ve Ses Tanıma Varlık Katmanı.
-* **Veli / Öğretmen App:** Swift / Kotlin (Native) veya Flutter, hafif harita katmanı, Siri/Google Assistant Entegrasyonu, Apple/Google Pay Wallet (NFC Kimlik Kartı Pass'leri).
-
-### 3.2. Ekran ve Kullanıcı Deneyimi (UX) Spesifikasyonları
-
-| Ekran / Rol | Özellik ve Arayüz |
-| :--- | :--- |
-| **Sürücü HUD** | **Sade, Gece Modu (Dark Mode).** Dikkat dağıtmayan arayüz. Kayan harita, kocaman "Yaklaştım", "Atla" butonları. Turuncu ünlem uyarıları animasyonlu belirir. Ekran hiç kapanmaz (Wakelock). |
-| **Planlayıcı Gösterge Paneli** | **Havacılık Radarı Yaklaşımı.** Sol menü: Günlük/Haftalık dinamik araç atama matrisleri. Orta: Filo haritası. Sağ: Akıllı doküman yükleme alanı (Drag & Drop) ve yapay zeka onay pencereleri. |
-| **Öğretmen App** | Öğrenci listeleri (Yoklama alabilme), okul kapısına gelen servislerin geri sayım sayacı, veli ile şifreli sohbet odası görünümü. |
-| **Veli App** | Çocuğun ETA sayacı (metrik/dakika). "Bugün Servise Binmeyecek" butonu, tek tuşla öğretmene/şoför firmasına not ve fatura ödeme alanı. |
+### 2.2. Veri Boru Hattı (Data Pipeline) 
+Araçtan (Donanım veya Şoför Cihazı) çıkan veri, `Telemetry Ingestion Service` tarafından gRPC protokolü üzerinden yakalanır. Doğrulanıp `Apache Kafka (Topic: delivery.telemetry.live)` tüneline fırlatılır. Bu hattan beslenen asenkron hai iki ana tüketici (Consumer) vardır:
+1. **WebSocket Tüketicileri (Node.js):** Veriyi gecikmesiz olarak Admin, Planlayıcı ve Velilerin ekranlarına canlı çizer.
+2. **Kalıcı Log Tüketicileri (Go):** Veritabanı diski şişmesini (I/O Darboğazı) engellemek için GPS verilerini toplu halde ve hızlıca TimescaleDB ve ElasticSearch (Hukuki Audit log) içerisine kaydeder.
 
 ---
 
-## 4. Hiyerarşik RBAC, İletişim ve Güvenlik
+## 3. Ekran Rolleri (UI/UX) ve İstemci Mimari Mimarisi
 
-### 4.1. Rol Yetki Matrisi
+Kullanıcı ergonomisi ve görev kısıtları için 4 farklı arayüz stratejisi uygulanmaktadır.
 
-Sistem **Tam Kapalı Devredir**.
+### 3.1. Rol Yetki Matrisi ve Haberleşme
 
-| Rol | İzleme ve Müdahale Kapsamı | Haberleşme Sınırları |
+Sistem **Tam Kapalı Devre** (Closed-Loop) çalışır:
+
+| Rol | İzleme & Görünüm Katmanı (Canlı Takip) | Etkileşim ve Haberleşme Çerçevesi |
 | :--- | :--- | :--- |
-| **Sistem Yöneticisi (Admin)**| Kuruma ait tüm veri, çoklu plan, analiz, fatura. | Kurum geneli anons geçebilir. |
-| **Planlayıcı (Operasyon)** | Tüm aktif araçlar. Cihaz/rota arıza müdahalesi. | Herkesle (Şoför, Veli, Öğr.) İletişim kurabilir. |
-| **Şoför** | Sadece aktif atandığı rotayı görür. | Veliyle doğrudan **yazışamaz**. SOS atar. |
-| **Öğretmen** | Sadece sınıfındaki çocukların bindiği servisi izler. | Şoförle yazışamaz. Veli ile yazışır. |
-| **Veli** | Sadece çocuğunun aracı. (Araç içi diğer çocukları göremez).| Sadece kurum ofisine ve öğretmene yazabilir. |
+| **Sistem Admini** | Küresel harita. Tüm kurumlar ve araçlar görünür. Kriz anında devamsızlık durakları sarı halkalarla işaretlenir. | Sınırsız iletişim sınırları, genel push duyuru yetkisi. |
+| **Planlayıcı** | Yalnızca kendi şirketine/kuruluna ait, havadan izleme radar ekranı. Rota iptallerinde durak şeffaf griye döner. | Şoför, Öğretmen ve Velilerle iki yönlü iletişim. Ancak rota düğümünü şoför basana kadar fiziksel silemez. |
+| **Servis Şoförü** | **(HUD EKRANI)** Yüksek kontrastlı Dark Mode, Sadece kendi rotası. Uyarılar devasa ünlem (!) logolu. | Veliyle serbest WhatsApp yazışması **YAPAMAZ**. Sadece SOS veya Sistem onay komutu tetikler. |
+| **Öğretmen** | Sadece sınıf öğrencileri ve o araçların ETA'sını izler. | Öğrencinin velisi veya sistem Planlayıcısı ile kriptolu yazışabilir. |
+| **Veli** | Çocuğun bindiği aracın canlı radarı (metre/dakika bazlı ETA). | "Servis İptal" butonu ve planlayıcıya not kısmı. Diğer öğrenci evlerini haritada asla göremez. |
 
-### 4.2. Güvenlik Katmanları (Security Posture)
-1. **API Gateway & Rate Limiting:** Kong üzerinden IP ve Session başına katı Rate Limit (örn: saniyede max 10 istek).
-2. **Auth & OIDC:** JWT tabanlı, kısa ömürlü (15 dk) Access Token, HttpOnly Cookie ile Refresh Token.
-3. **E2E Şifreli Chat:** İstemciler arası `ECDH-P256` key exchange ve `AES-256-GCM` şifrelemesi.
-4. **Veri Yalıtımı (Multi-Tenancy):** PostgreSQL Row-Level Security (RLS) kullanılarak donanım seviyesinde zorunlu *Tenant Isolation*.
-5. **DDoS & WAF:** Cloudflare proxy ve Web Application Firewall ile uygulama katmanı saldırılarına karşı koruma, OWASP Top 10 uyumluluğu.
-6. **Penetration Test (Sızma Testi) Planı:** Her major release öncesi yetkisiz yatay erişim (IDOR) ve SQL Enjeksiyonu testleri.
+### 3.2. E2E Şifreli (Kriptografik) Mesajlaşma Mimarisi
+Hiyerarşik (Planlayıcı-Veli, Planlayıcı-Öğretmen) tüm sohbet odaları uçtan uca şifrelidir. Veriler MongoDB'ye ham şekilde yazılmaz.
+* Anahtar Değişimi: `ECDH` (Elliptic Curve Diffie-Hellman P-256).
+* Taşıma Şifreleme: `AES-256-GCM` algoritması.
 
 ---
 
-## 5. Gelişmiş Özellikler: Planlama, Finans ve Biniş Doğrulama
+## 4. Yapay Zeka Rota Optimizasyon (VRPTW) ve Akıllı Budama Çekirdeği (v4.1 Algoritması)
 
-### 5.1. Dinamik Çoklu Plan ve Takvim Modülü
-Araç verimliliğini (ROI) maksimize etmek için bir araç günde birden fazla operasyona atanabilir.
-* **Sabah Bandı (06:30 - 08:30):** İlköğretim rotası.
-* **Öğlen Bandı (11:30 - 13:00):** Anaokulu yarım gün dağıtımı.
-* **Akşam Bandı (17:00 - 19:00):** Holding / Fabrika personel servisi.
+ShuttleX, statik harita hesaplamalarının ötesine geçerek makine öğrenimi tabanlı kararlar matrisi (Directed Graph) sunar. Makro düzeyde trafik tahmini (LSTM tabanlı model) yapan Google OR-Tools destekli bir rota motoru çalıştırır. 
 
-### 5.2. Akıllı İşlem / Finans Modülü
-* Servis ücretlerinin velinin kredi kartından abonelik (Recurring) modeliyle Stripe / Iyzico tabanlı çekimi.
-* Çoklu kurum destekli, alt-üye işyeri modeli ile para akışlarının doğrudan servis firmasına veya okula aktarımı.
-
-### 5.3. Biniş - İniş Doğrulama (QR & NFC)
-Çocukların yanlış servise binmesini veya serviste unutulmasını önler:
-* **QR Kod / NFC Kart:** Mobil uygulamadan üretilen QR veya NFC kart, servise binişte ve inişte şoför cihazına / okutucuya temas eder.
-* **Canlı Sayım:** "15 çocuk bindi, 14 çocuk indi" eşleşmediğinde şoför uygulaması turuncu kilit (Lock) moduna girer, aracı park konumundan çıkarttırmaz. Admin'e "Araçta Öğrenci Unutulma İhtimali" alarmı gider.
+### 4.1. Hiyerarşik Dağıtık Akış Yönetimi (Durak İptal Süreci)
+1. **Olay Tetikleme:** Veli `"Çocuğum Bugün Servise Binmeyecek"` butonuna bastığı an, `attendance.absence_flagged` olayı üretilir.
+2. **Dağıtım (Broadcast):** Kafka üzerinden bu durum Admin ve Planlayıcı WebSocket odalarına fırlatılır. Şoför HUD Ekranında saniyeler içinde **Turuncu Renkli Bir Ünlem Kartı (⚠)** parlar.
+3. **Şoför Kesin Aksiyonu:** Sürücü ekrandaki ünleme basar ve `"Bu Durağı Atla"` seçeneğini veya **Sesli Asistan** ile "ShuttleX Durağı Atla" diyerek onay verir. (`Event: route.node_pruned`).
+4. **Asenkron Yeniden Hesaplama:** Yapay zeka makinesi ilgili koordinat düğümünü graf üzerinden kalıcı olarak budar ve kalan duraklar için optimize edilmiş (Google Distance Matrix ve LSTM destekli) ETA (beklenen varış süresi) ve navigasyon dizilimini **450 milisaniye (0.45sn) içinde yeniden üretir**. 
 
 ---
 
-## 6. Veri Tabanı Şeması ve Tam DDL (PostgreSQL 16 + PostGIS)
+## 5. Çevrimdışı Sürüş Koruma (Offline-First) ve Geofence Doğrulaması
 
-Aşağıda mimarinin çekirdek nesne ilişkileri ve detaylı şifrelenmiş tabloları bulunmaktadır.
+Sinyal kopmalarına, şehir kanyonları ve kırsal bölge bağlantısızlığına (Network Disconnect Mode) karşı endüstri standardında savunma.
+
+### 5.1. Eylemsizlik Seyrüseferi (Dead-Reckoning) ve Veri Kurtarma (FIFO Buffering)
+* İnternet kesilirse: Mobil cihaz, GPS ve Bekleme Kronometresi loglarını AES-256 şifrelemeyle anlık kendi yerel belleğine (SQLite) kaydeder.
+* Şoförün haritadaki tahmini konumu cihazın ivmeölçer (Accelerometer) ve jiroskop (Gyroscope) verilerinden hareketle (Vektörel vektör) ekranda yürütülmeye devam eder, böylece donma veya navigasyon kopması yaşanmaz.
+* **Network Reconnect:** Çevrimiçi olunduğunda kuyruktaki yüzlerce paket FIFO mantığıyla sıkıştırılarak (Gzip blob) backend'e fırlatılır; sunucu TimescaleDB üzerinden zamanları onarır, boşlukları enterpolasyon ile tamamlar.
+
+### 5.2. Zaman Bazlı Coğrafi Çit (Temporal Geofence)
+Kuş uçuşu yarıçap kullanımı tamamen iptal edilmiştir.
+Sistemin veliye "Servis Yaklaştı" sinyalini (Push Notification) iletmesi için uzaklık ölçümü yerine canlı trafik kullanılır. Aracın hızı ve yolun yoğunluk endeksi hesaplanarak (Distance / Canlı Hız = ETA), durağa (hedefe) varış **5 dakikanın (300 saniye/zaman penceresinin) altına indiği (Temporal Geofence tetiklendiği) an veliye FCM/APNS üzerinden "Aracınız yaklaştı" uyarısı gider**.
+
+---
+
+## 6. Kurumsal Yönetim, Finans ve Gelişmiş Çoklu Plan (Multi-Tenant)
+
+### 6.1. Finans, Abone ve Çift Yönlü Katı Sistem
+* **Iyzico / Stripe Recurring (Abonelik):** Mobil veli uygulamasında kredi kartı saklama ve okula/servisçi firmasına (Alt-işyeri paylaşımlı) aidat sistemi.
+* **Biniş, QR & NFC Lock (Çocuk Unutma Emniyeti):** Biniş ve İniş logları (Şoför paneline temas - NFC Hash) üzerinden karşılaştırılır."Sabah araca binen toplam çocuk ile akşam binen çocuk sayısı aynı mı?" Eğer eşleşmezse Şoför arayüzü Kilit (Kırmızı Alert) alır.
+
+### 6.2. Araç Envanteri ve Günlük Takvim Çarpanı
+* Araç marka, model yılı, total yolcu kapasitesi ve trafik/sigorta vize bitiş tarihi tutulur. 19 koltuklu araçta 20. öğrenci planlama ekranından atanamaz (Yapay zeka kırmızı hata verir).
+* **Günlük Vardiya Takvimi:** Aracın atıl durmasını önlemek için bir araç aynı günde (07.00 Anaokulu, 12.00 Fabrika gibi) çoklu vardiyada (Shift) yapılandırılır (Kurumsal kârlılığı maksimize eder). Veriler katı **Row-Level Security (RLS)** ile kurumsal olarak ayrıştırılmıştır. (Tenant A kurulu, Tenant B'nin işlerini/veritabanını katiyen çekemez).
+
+---
+
+## 7. PostgreSQL 16 + PostGIS Veri Tabanı Şemaları 
 
 ```sql
 -- 1. Kurumlar (Tenants)
@@ -141,7 +137,7 @@ CREATE TABLE tenants (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Kullanıcılar
+-- 2. Çok Rollerli Kullanıcı ve RBAC Tablosu
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
@@ -149,12 +145,12 @@ CREATE TABLE users (
     password_hash VARCHAR(255) NOT NULL,
     full_name VARCHAR(100) NOT NULL,
     phone_number VARCHAR(20) NOT NULL,
-    role VARCHAR(30) NOT NULL,
+    role VARCHAR(30) NOT NULL CHECK (role IN ('SYSTEM_ADMIN', 'PLANNER', 'DRIVER', 'TEACHER', 'PARENT')),
     is_approved BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. Araç Envanteri ve Bakım
+-- 3. Araç Envanteri ve Gelişmiş Kapasite/Sigorta Takibi
 CREATE TABLE vehicles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
@@ -163,23 +159,23 @@ CREATE TABLE vehicles (
     model_year INT,
     total_capacity INT NOT NULL,
     insurance_expiry_date DATE NOT NULL,
-    inspection_expiry_date DATE NOT NULL, -- Vize tarihi
+    inspection_expiry_date DATE NOT NULL, -- Vize tarihi (Araç muayene)
     is_operational BOOLEAN DEFAULT TRUE
 );
 
--- 4. Araç-Şoför Atama (Günlük/Haftalık Takvim)
+-- 4. Araç-Şoför Atama ve Zaman Çarpanı (Çoklu Plan Tablosu)
 CREATE TABLE vehicle_driver_assignments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID REFERENCES tenants(id),
     vehicle_id UUID REFERENCES vehicles(id),
     driver_id UUID REFERENCES users(id),
-    shift_start TIME,
-    shift_end TIME,
-    active_days INT[], -- [1,2,3,4,5] (Pzt-Cuma)
+    shift_start TIME,  -- Vardiya Başı Örn: 06:30
+    shift_end TIME,    -- Vardiya Sonu Örn: 08:30
+    active_days INT[], -- [1,2,3,4,5] (Pzt-Cuma Günler Listesi)
     valid_until DATE
 );
 
--- 5. Öğrenciler
+-- 5. Öğrenciler ve NFC Hash Biniş Kontrolü
 CREATE TABLE students (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
@@ -187,21 +183,23 @@ CREATE TABLE students (
     teacher_id UUID REFERENCES users(id) ON DELETE SET NULL,
     full_name VARCHAR(100) NOT NULL,
     school_number VARCHAR(50),
-    qr_nfc_code VARCHAR(255) UNIQUE, -- Hashli RFID numarası
+    qr_nfc_code VARCHAR(255) UNIQUE, -- Şifrelenmiş Biniş/İniş Kodu
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 6. Rotalar (Master)
+-- 6. Dağıtık Rotalar (Master)
 CREATE TABLE routes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
     vehicle_id UUID REFERENCES vehicles(id) ON DELETE SET NULL,
+    driver_id UUID REFERENCES users(id) ON DELETE SET NULL,
     route_name VARCHAR(100) NOT NULL,
     schedule_type VARCHAR(30) DEFAULT 'MORNING_PICKUP',
-    is_active BOOLEAN DEFAULT FALSE
+    is_active BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- 7. Duraklar / Düğümler (PostGIS v4.1 - Manual Pruning Flag'leri)
+-- 7. Rota Durak Düğümleri PostGIS & v4.1 Budama Bayraklı Tablosu
 CREATE TABLE route_nodes (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
@@ -210,25 +208,41 @@ CREATE TABLE route_nodes (
     stop_sequence_number INT NOT NULL,
     geo_location GEOMETRY(Point, 4326) NOT NULL,
     node_status VARCHAR(30) DEFAULT 'ACTIVE',
+    
+    -- V4.1 Veli Alert / Budama Kontrol Alanları
     parent_absence_reported BOOLEAN DEFAULT FALSE,
     absence_note VARCHAR(255) DEFAULT NULL,
-    driver_acknowledgment_status VARCHAR(30) DEFAULT 'PENDING_REVIEW', -- MARKED_WITH_WARNING, EXPLICITLY_SKIPPED_BY_DRIVER
+    driver_acknowledgment_status VARCHAR(30) DEFAULT 'PENDING_REVIEW', -- PENDING_REVIEW, MARKED_WITH_WARNING, EXPLICITLY_SKIPPED_BY_DRIVER
+    
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- PostgreSQL İndeksleri
 CREATE INDEX idx_route_nodes_geo ON route_nodes USING GIST(geo_location);
 CREATE INDEX idx_route_nodes_tenant ON route_nodes(tenant_id);
+CREATE INDEX idx_route_nodes_absence ON route_nodes(parent_absence_reported) WHERE parent_absence_reported = TRUE;
 
--- 8. İletişim / Sohbet Odaları (Meta Data)
+-- 8. Sohbet Odaları ve Yoklama Audit / Trace Tabloları
 CREATE TABLE chat_rooms (
      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
      tenant_id UUID REFERENCES tenants(id),
-     room_type VARCHAR(30), -- PARENT_TEACHER, PARENT_OFFICE
+     room_type VARCHAR(30), -- E2E İçin Oda Kimliği
      participant_ids UUID[],
      created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- Row-Level Security Aktivasyonu (Örnek)
+CREATE TABLE attendance_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tenant_id UUID REFERENCES tenants(id) ON DELETE CASCADE,
+    student_id UUID REFERENCES students(id) ON DELETE CASCADE,
+    route_id UUID REFERENCES routes(id) ON DELETE CASCADE,
+    node_id UUID REFERENCES route_nodes(id) ON DELETE CASCADE,
+    scan_type VARCHAR(20) CHECK (scan_type IN ('BOARDED', 'ALIGHTED', 'NO_SHOW', 'MANUAL_DRIVER_SKIP')),
+    scan_method VARCHAR(20) CHECK (scan_method IN ('QR_CODE', 'NFC_CARD', 'DRIVER_HUD_TAP', 'VOICE_COMMAND')),
+    timestamp TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Row-Level Security (RLS) Donanım Seviyesi İzole Başlatıcısı (Sızıntı Önleyici)
 ALTER TABLE route_nodes ENABLE ROW LEVEL SECURITY;
 CREATE POLICY tenant_isolation_policy ON route_nodes
     FOR ALL
@@ -237,16 +251,44 @@ CREATE POLICY tenant_isolation_policy ON route_nodes
 
 ---
 
-## 7. Tam API Kontratları (gRPC ve REST)
+## 8. Tam API Kontratları (REST & gRPC Protobufs)
 
-Genişletilmiş mikroservis mimarisine ait temel API Uç Noktaları.
+### 8.1. Hiyerarşik Veli İptal ve Sürücü Budama (POST Akışları)
+Veli sadece "İşaret (Flag)" atar, Budama komutunu Sürücü (Driver-Prune) çalıştırır.
 
-### 7.1. Çoklu Rota Optimizasyon Girdisi (POST `/api/v5/routes/multi-optimize`)
-Yapay zeka (Google OR-Tools) motoruna birden fazla aracın kapasite ve trafik durumuna göre rota çizdirmesi için gönderilen payload.
+#### A. Veli İptal Bayrağı Koyma İşlemi Uç Noktası
+```json
+// POST `/api/v5/routes/node/flag-absence`
+{
+  "tenant_id": "e301-...",
+  "route_id": "route_uuid",
+  "node_id": "node_uuid",
+  "student_id": "student_uuid",
+  "absence_reason": "Çocuğum rahatsız (Opsiyonel)",
+  "action_type": "FLAG_WARNING_ONLY" // Rotadan silmez, Şoföre işaret atar.
+}
+```
+
+#### B. Şoför Budama (Execution) Uç Noktası
+```json
+// POST `/api/v5/routes/node/driver-prune`
+{
+  "tenant_id": "e301...",
+  "route_id": "route_uuid",
+  "node_id": "node_uuid",
+  "driver_id": "driver_uuid",
+  "action": "EXECUTE_PRUNE", // Gerçekten graf düğümü haritadan budanır
+  "timestamp": 1784878200
+}
+```
+
+### 8.2. Filo (Çoklu Araç) Rota Optimizasyon Uç Noktası
+Yapay zekaya (Google OR-Tools VRPTW'ye) birden fazla aracı yollayıp görev paylaştırma ve Traffic Aware çizimi.
 
 ```json
+// POST `/api/v5/routes/multi-optimize`
 {
-  "tenant_id": "e30129a4-2309-4112-b211-89ccaa112233",
+  "tenant_id": "uid...",
   "optimization_timestamp": 1784875038,
   "config": {
     "algorithm_type": "GENETIC_TRAFFIC_AWARE",
@@ -255,100 +297,149 @@ Yapay zeka (Google OR-Tools) motoruna birden fazla aracın kapasite ve trafik du
   },
   "fleet": [
     {
-      "vehicle_id": "88ffaa...",
-      "start_coordinates": { "lat": 40.2216, "lng": 28.9612 },
+      "vehicle_id": "uuid88...",
       "max_capacity": 19,
       "shift_start_time": "06:30",
-      "shift_end_time": "08:30"
+      "shift_end_time": "08:30",
+      "start_coordinates": { "lat": 40.2216, "lng": 28.9612 }
     }
   ],
-  "associated_student_nodes": ["id1", "id2", "id3"],
-  "blacklisted_node_ids": ["c8a11b..."]
+  "associated_student_nodes": ["node_1", "node_2", "node_3"],
+  "blacklisted_node_ids": ["veli_iptal_eden_node_4"]
 }
 ```
 
-### 7.2. Akıllı Doküman (VLM/OCR) Adres Yükleme (POST `/api/v5/routes/ingest-document`)
-Bu endpoint Planlayıcı panelindeki "Fotoğraf Yükle" butonuna tıklandığında belgenin sisteme yüklenip anlamlandırılmasını başlatır.
+### 8.3. Go (Golang) Telemetry gRPC Protobuf
+Canlı (Saniyede binlerce istek) telemetri akıtmak için kullanılan performans tamponu.
 
-```json
-{
-  "tenant_id": "e30129a4-2309-4112-b211-89ccaa112233",
-  "route_id": "optional_route_uuid",
-  "upload_reference_id": "s3-file-uuid-778899",
-  "file_type": "IMAGE_JPEG",
-  "ocr_confidence_threshold": 0.85,
-  "config": {
-    "auto_create_nodes_on_success": false,
-    "geocoding_fallback": true,
-    "language_context": "tr-TR"
-  }
+```protobuf
+syntax = "proto3";
+package shuttlex.telemetry.v1;
+
+service TelemetryService {
+  rpc StreamTelemetry (stream TelemetryFrame) returns (TelemetryAck);
 }
-```
 
-### 7.3. Hiyerarşik Mesaj Odası Tetikleme (POST `/api/v5/chat/room/init`)
-Öldürülmüş oturumların (room) güvenli E2E parametreleriyle tekrar diriltilmesi.
-
-```json
-{
-  "tenant_id": "uid...",
-  "sender_id": "parent_uuid_77211",
-  "sender_role": "PARENT",
-  "recipient_id": "teacher_uuid_99102",
-  "recipient_role": "TEACHER",
-  "context": {
-    "student_id": "student_uuid_55102",
-    "route_id": "route_uuid_002"
-  },
-  "encryption_type": "ECDH_AES_GCM"
+message TelemetryFrame {
+  string tenant_id = 1;
+  string vehicle_id = 2;
+  double latitude = 3;
+  double longitude = 4;
+  float speed_kmh = 5;
+  int64 timestamp_utc = 6;
+  bool is_offline_buffered = 7;
 }
-```
 
-### 7.4. Voice Intent (Ses Tanıma) Payload (POST `/api/v5/voice/intent`)
-Şoförün "Eymen'i atla" ses kaydının NLP katmanında anlama kavuşmuş JSON dönüşü.
-
-```json
-{
-  "tenant_id": "uid...",
-  "user_id": "driver_uuid_104",
-  "role": "DRIVER",
-  "audio_payload_sha256": "abcdef123456...",
-  "resolved_intent": {
-    "action": "EXECUTE_PRUNE",
-    "target_node": "Eymen Altunel",
-    "confidence_score": 0.98
-  },
-  "timestamp": 1784876123
+message TelemetryAck {
+  bool success = 1;
+  int64 processed_frames_count = 2;
 }
 ```
 
 ---
 
-## 8. Hukuki Loglama, Çevrimdışı Sürüş ve Olası Sorun Çözümü (Audit)
+## 9. Akıllı Doküman (Vision-Language OCR/VLM ) ve Sanal Sesli Asistan (Voice AI & NLP)
 
-### 8.1. 2 Dakikalık Yasal Bekleme Trace/Audit Örneği
-Sistemin milisaniyelik logları bir veli şikayeti geldiğinde Admin paneline yansır (Elasticsearch tabanlı):
+Sektör standartlarını premium bir yapay zeka deneyimine çeken 2 çekirdek teknoloji modülü.
 
-| Zaman (UTC) | Servis Modülü | Olay Detayı | İvme & GPS |
+### 9.1. Planlayıcı İçin Fotoğraftan Saniyede Rota (Document AI) 
+* **Dosya Girişi:** JPEG, PNG (El yazısı kağıtları, WhatsApp ekran görüntüleri), PDF veya CSV.
+* **NER İstihbaratı ve Çıkarım:** Planlayıcı, fotoğrafı arayüzdeki `"Dosyadan / Görüntüden Yükle"` kısmına sürüklediğinde, Vision AI (Geniş / Görsel Dil Modeli) metindeki logistik verileri (Sokak, kapı no) cımbızla çeker. 
+* **C. Akıllı Kodlama (Geocoding-Fallback):** Eğer adreste sadece "Cumhuriyet Mah. No:1" gibi eksik bilgi varsa sistem kurumsal bölge bilgisini alır Google Geocoding API ile bağdaştırıp Enlem / Boylama (4326 Geo Location) çevirir. Onay ekranında "Doğrulama Bekleyen (Olası 2 konum)" olarak sunar.
+
+`POST /api/v5/routes/ingest-document` servisi bulut deposunda (S3/GCS) resim dosyasını yapay zeka analizine sunar anında imha eder.
+
+### 9.2. Şoför Eller Serbest (Hands-Free) Çift Yönlü Dinamik Asistan Modülü
+Aracın tüm kontrollerini Ses (TTS - STT) motorlarına bağlar:
+1. **TTS (Yolcu Durak Asistanı):** Şebeke veya Radyo/Bluetooth cihazı üzerinden sistem yandığında bağırır. ("Sıradaki Durak: Eymen Altunel. 300 Metre kaldı").
+2. **STT ve Intent Recognition (Algılama):** Şoför düğmelere dokunmak yerine ekrana "ShuttleX (Uyandırma kelimesi), kaza yaptık sistem bildirimi yap, veya Eymen gelmedi atla" der. Voice Intent arayüzü, komutu NLP üzerinden yorumlayıp doğrudan mikroservisteki `EXECUTE_PRUNE` veya `SOS_ALERT` modülünü çalıştırır. (Ham ses blob kaydı saniyeler içinde Kafka `voice.intents` modülünden işleme girer).
+3. **Veli / Öğretmen Siri Asistanı Entegrasyonu:** Veli App'a hiç girmeden "Hey Siri, ShuttleX'e çocuğumun servise binmeyeceğini bildir" komutunu verebilir. Bu direkt V4.1 Uyarı (Turuncu rozet) API'sine istek yollar.
+
+---
+
+## 10. Hukuki Denetim, Audit Log (İzlenebilirlik) ve KVKK Süreçleri
+
+### 10.1. Yasal Bekleme Trace/Audit Örneği ve Hak İddiası Logu (ElasticSearch)
+Milisaniyelik adli tıp logları (Geriye yönelik inceleme) şikayet davaları için izole bir Elasticsearch tablosunda tutulur.
+
+| Zaman (UTC) | Servis / Modül | Sistem Audit Log (Değiştirilemez / Immutable) | GPS ve Telemetri Kanıtı |
 | :--- | :--- | :--- | :--- |
-| `07:12:01` | Geofence | Araç durak çevresel çemberine (300m) girdi. | 40!... N, Hız: 12 km/s |
-| `07:12:15` | HUD Event | Şoför **"Durağa Vardım - Kronometre Başlat"** tuşladı. Arabanın tekeri durdu. Veliye push atıldı. | 40!... N, Hız: 0 km/s |
-| `07:14:15` | Core Logic | **2 dakikalık yasal bekleme doldu.** Çocuk gelmedi işaretlendi. Log Immutable (Değiştirilemez) yapıldı. | ..., Hız: 0 km/s |
-| `07:14:22` | Routing Engine | Şoför sesli/butonlu komutla "ATLA (PRUNE)" dedi. Rota sonraki düğüme bağlandı. | ..., Hız: 24 km/s |
+| `07:12:01` | Geofence Broker | Araç Durak sınırına girdi. | 40.2231 N, 28.9645 E \| Hız: 12 km/s |
+| `07:12:15` | Driver HUD App | Şoför "Vardım" komutu verdi. Veli cihazına push iletildi. | 40.2231 N, 28.9645 E \| Hız: 0 km/s |
+| `07:14:15` | Core Logic | **(KURAL) 2 dakikalık yasal bekleme hak edişi doldu.** Çocuk gelmedi işaretlendi. Log kilitlendi. | 40.2232 N, 28.9645 E \| Hız: 0 km/s |
+| `07:14:22` | Routing Motoru | Sürücü "Atla" Budama işlemini mühürledi. Node "SKIPPED". | 40.2235 N, 28.9648 E \| Hız: 24 km/s |
 
-### 8.2. Çevrimdışı Eylemsizlik (Dead-Reckoning)
-Tünelde veya kırsalda internet koparsa:
-1. Şoför App, GPS koordinatlarını ve offline olay tetiklemelerini AES-256 olarak telefonda (SQLite) depolar.
-2. Formülsel Eylemsizlik (Accelerometer tabanlı ilerleme tahmini) algoritmaları devreye girer ki harita şoföre donmuş görünmesin.
-3. Bağlantı (Network Reconnect) anında `Gzip` paket olarak veriler TimescaleDB'ye dökülür ve geçmiş veriler enterpolasyon ile tamamlanır.
+### 10.2. Madde 17 (KVKK / GDPR: Unutulma Hakkı) 
+Sistem tasarımı gereğince, bir şirket / veli sistemden ayrılır ise, PII (Kişisel ve Biyometrik / İsim-Soyisim) alanları `anonymized_user_id` üzerinden tam kriptolanır; fakat devasa araç operasyon metrikleri (Telemetri makine öğrenimi antrenman veri havuzu) yasal olarak anonim bir istatistik olarak veritabanında kalır.
 
 ---
 
-## 9. CI/CD Altyapısı, Monitoring ve Gözlemlenebilirlik (Observability)
+## 11. Kubernetes (K8s) Cluster, CI/CD Dağılımı ve Güvenilirlik Altyapısı (DevOps)
 
-Sektör lideri operasyon sürekliliği (Uptime %99.99) için;
-* **Sürekli Entegrasyon (CI) / Sürekli Dağıtım (CD):** GitHub Actions veya GitLab CI üzerinden; Unit testler (Pytest, JUnit, Jest) -> SonarQube Quality Gate -> Docker Build -> AWS ECR -> ArgoCD üzerinden Kubernetes cluster'larına (EKS/GKE) otomatik deploy (`Canary Releases` destekli).
-* **Metrics (Ölçüm):** Prometheus ile Kafka tüketici gecikmeleri (consumer lag), API gateway hata metrikleri, node işlemci yükleri anlık takip edilir.
-* **Dashboards:** Grafana ile hem operasyon mühendislerine sistemin nabzı, hem de C-Level yöneticilere günlük fatura/işlem cirosu, sisteme eklenen rota hacimleri gösterilir.
-* **Tracing (İz Sürücü):** Jaeger veya OpenTelemetry. Bir mikroservisten çıkan isteğin (örn: SMS gönderimi) hangi mikroserviste takılıp latency oluşturduğunu milisaniye bazında tespit yeteneği.
+ShuttleX global ölçeklenebilirlik, sıfır gecikme ve kusursuz uptime regülasyonları için "Container (Kapsayıcı) Native" tasarlanmıştır.
 
-Kurulum ve orkestrasyon, "Infrastructure as Code" (IaC) mantığıyla Terraform ile yönetilir.
+### 11.1. CI/CD Sürekli Entegrasyon & Gözlemlenebilirlik (Observability) 
+1. **GitHub/GitLab Actions Pipeline:** Unit ve Integration Testleri -> SonarQube Q-Gate -> Docker (Distroless imajları) İnşaası -> Elastic Container Registry (ECR).
+2. **Cluster Orkestrasyonu (ArgoCD):** EKS/GKE cluster'larına Canary Releases (Kademeli geçiş) üzerinden otomatik deploy fırlatma.
+3. **Gözlem ve İz (Monitoring):** 
+   - **Prometheus & Grafana:** Kafka consumer delay süresi, API Hata Payları, Gecikme metrikleri 7/24 görsel dashboard'larda izlenir.
+   - **Jaeger veya OpenTelemetry (Distributed Tracing):** Tüketicinin mobil uygulamasından çıkıp, API, Veritabanı ve Mesaj kuyruğunda dönen çok katmanlı bir verinin "hangi Node'da takıldığı" Spans'lar halinde görüntülenir.
+
+### 11.2. Kubernetes Auto-Scaling (HPA) ve Deployment Spesifikasyon örneği
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: telemetry-ingestion-deployment
+  namespace: shuttlex-core
+spec:
+  replicas: 5 # Min 5 pod
+  selector:
+    matchLabels:
+      app: telemetry-ingestion
+  template:
+    metadata:
+      labels:
+        app: telemetry-ingestion
+    spec:
+      containers:
+      - name: telemetry-go
+        image: shuttlex/telemetry-service:v5.0.0
+        ports:
+        - containerPort: 50051 # gRPC bağlantı noktası
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+        env:
+        - name: KAFKA_BROKERS
+          value: "kafka-cluster:9092"
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: telemetry-hpa
+  namespace: shuttlex-core
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: telemetry-ingestion-deployment
+  minReplicas: 5
+  maxReplicas: 50 # Oran %75 üzerine çıkarsa 50 sunucuya kadar kendisini çoğaltır
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 75
+```
+
+### 11.3. Service Level Agreement (SLA) & Felaket Senaryoları (DR)
+* **Real-time Latency (Gecikme Hedefi):** Telemetri paketleri dünya genelinde <150 milisaniye (WebSockets + GoLang Caching ile ping performansı).
+* **RPO (Recovery Point Objective):** < 1 saniye veri kaybı payı (TimescaleDB Streaming Replication Cluster).
+* **RTO (Recovery Time Objective):** Multi-Region K8s Failover teknolojisi ile (Sunucu çökmesi durumunda A'dan B'ye aktarım) maks 5 dakikada sistem tam yedekliliği ayağa kaldırır.

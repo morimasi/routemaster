@@ -1,285 +1,160 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  LayoutDashboard, 
-  Map as MapIcon, 
-  Users, 
-  Settings, 
-  CarFront, 
-  BellRing,
-  Search,
-  LogOut,
-  Sparkles,
-  Smartphone,
-  Navigation,
-  CreditCard,
-  X,
-  AlertTriangle,
-  CheckCircle2
-} from 'lucide-react';
-import { DriverHUD } from './components/DriverHUD';
-import { ParentApp } from './components/ParentApp';
-import { DocumentAIModal } from './components/DocumentAIModal';
-import { PlannerRadar } from './components/planner/PlannerRadar';
-import { SystemDashboard } from './components/planner/SystemDashboard';
-import { FleetManagement } from './components/planner/FleetManagement';
-import { SettingsView } from './components/planner/SettingsView';
-import { BillingView } from './components/planner/BillingView';
+import { Search } from 'lucide-react';
+import { TopBar } from './components/ui/TopBar';
+import { PremiumSidebar } from './components/ui/PremiumSidebar';
+import { MobileNav } from './components/ui/MobileNav';
+import { DashboardModule } from './modules/dashboard';
+import { RadarModule } from './modules/radar';
+import { FleetModule } from './modules/fleet';
+import { SettingsModule } from './modules/settings';
+import { BillingModule } from './modules/billing';
+import { PhotoRouteModule } from './modules/photo-route';
+import { DocumentModule } from './modules/document';
+import { DriverHUDModule } from './modules/driver-hud';
+import { ParentModule } from './modules/parent-app';
+import { useWindowSize } from './hooks/useWindowSize';
+import { useSwipe } from './hooks/useSwipe';
 import type { Route, DocumentAINode } from './types';
 
+type TabId = 'dashboard' | 'radar' | 'fleet' | 'settings' | 'billing';
+
 function App() {
+  const { isMobile, isTablet } = useWindowSize();
   const [activeRole, setActiveRole] = useState<'planner' | 'driver' | 'parent'>('planner');
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'radar' | 'fleet' | 'settings' | 'billing'>('radar');
-  const [isDocumentAIOpen, setIsDocumentAIOpen] = useState(false);
-  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<TabId>('radar');
+  const [isPhotoRouteOpen, setIsPhotoRouteOpen] = useState(false);
+  const [isDocumentOpen, setIsDocumentOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Dynamic state for routes
-  const [routes, setRoutes] = useState<Route[]>([
+  const [routes] = useState<Route[]>([
     { id: '1', name: 'Sabah Bandı - Kavacık', vehiclePlate: '34 AB 1234', status: 'ACTIVE', alertsCount: 0, progressPercent: 65, nodes: [] },
     { id: '2', name: 'Anaokulu Öğlen Bağlantısı', vehiclePlate: '34 CD 5678', status: 'WARNING', alertsCount: 1, progressPercent: 40, nodes: [] },
-    { id: '3', name: 'Akşam Fabrika Servisi', vehiclePlate: '34 EF 9012', status: 'SCHEDULED', alertsCount: 0, progressPercent: 10, nodes: [] }
+    { id: '3', name: 'Akşam Fabrika Servisi', vehiclePlate: '34 EF 9012', status: 'SCHEDULED', alertsCount: 0, progressPercent: 10, nodes: [] },
   ]);
 
-  // Notifications state
   const [notifications] = useState([
-    { id: 1, title: 'v4.1 Veli İptal Bildirimi', text: 'Eymen Altunel için veli devamsızlık bildirdi. Şoför HUD uyarısı aktif.', time: '2 dk önce', type: 'alert' },
-    { id: 2, title: 'VRPTW Rota Optimizasyonu', text: 'Sabah bandı rotalarında %19.2 yakıt tasarrufu sağlandı.', time: '15 dk önce', type: 'success' },
+    { id: 1, title: 'Veli İptal Bildirimi', text: 'Eymen Altunel için veli devamsızlık bildirdi.', time: '2 dk önce', type: 'alert' as const },
+    { id: 2, title: 'VRPTW Rota Optimizasyonu', text: 'Sabah bandı rotalarında %19.2 yakıt tasarrufu sağlandı.', time: '15 dk önce', type: 'success' as const },
   ]);
 
-  // Filter routes by search query
-  const filteredRoutes = routes.filter(
-    (r) =>
+  const handleNodesImported = useCallback((extractedNodes: DocumentAINode[]) => {
+    console.log(`${extractedNodes.length} node imported via Photo Route AI`);
+    setActiveTab('radar');
+  }, []);
+
+  const tabIds: TabId[] = ['dashboard', 'radar', 'fleet', 'settings', 'billing'];
+  const currentTabIndex = tabIds.indexOf(activeTab);
+
+  const nextTab = useCallback(() => {
+    setActiveTab(tabIds[(currentTabIndex + 1) % tabIds.length]);
+  }, [currentTabIndex]);
+
+  const prevTab = useCallback(() => {
+    setActiveTab(tabIds[(currentTabIndex - 1 + tabIds.length) % tabIds.length]);
+  }, [currentTabIndex]);
+
+  const swipeHandlers = useSwipe({ onSwipeLeft: nextTab, onSwipeRight: prevTab });
+
+  const handleTabChange = (tab: string) => {
+    if (tabIds.includes(tab as TabId)) {
+      setActiveTab(tab as TabId);
+    }
+  };
+
+  const handleExtraClick = (id: string) => {
+    if (id === 'photo-route') setIsPhotoRouteOpen(true);
+    if (id === 'document') setIsDocumentOpen(true);
+  };
+
+  const radarRoutes = routes
+    .filter((r) =>
       r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       r.vehiclePlate.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+    )
+    .map((r) => ({
+      id: r.id,
+      name: r.name,
+      vehiclePlate: r.vehiclePlate,
+      status: r.status as 'ACTIVE' | 'WARNING' | 'SCHEDULED' | 'COMPLETED',
+      alertsCount: r.alertsCount,
+      progressPercent: r.progressPercent,
+      nodes: [],
+    }));
 
-  // Handler when Document AI imports new extracted nodes
-  const handleNodesImported = (extractedNodes: DocumentAINode[]) => {
-    const newRoute: Route = {
-      id: `ai-route-${Date.now()}`,
-      name: `AI OCR Rota (${extractedNodes.length} Durak)`,
-      vehiclePlate: '34 AI 2026',
-      status: 'ACTIVE',
-      alertsCount: 0,
-      progressPercent: 0,
-      nodes: extractedNodes.map((n, idx) => ({
-        id: `node-${n.id}`,
-        studentName: n.student,
-        stopName: n.address,
-        seq: idx + 1,
-        status: idx === 0 ? 'CURRENT' : 'PENDING',
-        absenceFlagged: false,
-      })),
-    };
-    setRoutes((prev) => [newRoute, ...prev]);
-    setActiveTab('radar');
+  const renderContent = () => {
+    switch (activeTab) {
+      case 'dashboard': return <DashboardModule />;
+      case 'radar': return <RadarModule routes={radarRoutes} />;
+      case 'fleet': return <FleetModule />;
+      case 'settings': return <SettingsModule />;
+      case 'billing': return <BillingModule />;
+    }
   };
+
+  if (activeRole === 'driver') return <DriverHUDModule />;
+  if (activeRole === 'parent') return <ParentModule />;
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-app-background text-foreground font-sans flex flex-col">
+        <TopBar isMobile notifications={notifications} />
+        <div className="flex-1 overflow-y-auto px-2 sm:px-3 py-2 sm:py-3 pb-24 scroll-smooth-mobile" {...swipeHandlers}>
+          <div className="relative mb-3">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-2.5" />
+            <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Rota, plaka ara..." className="w-full bg-slate-900/80 border border-slate-800 text-white text-[10px] sm:text-xs rounded-full pl-8 pr-3 py-2 focus:outline-none focus:border-blue-500" />
+          </div>
+          <AnimatePresence mode="wait">
+            <motion.div key={activeTab} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.15 }}>
+              {renderContent()}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+        <MobileNav activeTab={activeTab} onTabChange={handleTabChange} onExtraClick={handleExtraClick} />
+        <PhotoRouteModule isOpen={isPhotoRouteOpen} onClose={() => setIsPhotoRouteOpen(false)} onNodesImported={handleNodesImported} />
+        <DocumentModule isOpen={isDocumentOpen} onClose={() => setIsDocumentOpen(false)} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-app-background text-foreground flex flex-col font-sans">
-      
-      {/* GLOBAL ROLE SWITCHER BAR (HEADER TOP) */}
-      <div className="bg-slate-950/90 border-b border-slate-800 px-6 py-2.5 flex items-center justify-between z-30">
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse"></span>
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-300">ShuttleX v5.0 Canlı Önizleme:</span>
-        </div>
-
-        <div className="flex items-center gap-2 bg-slate-900 border border-slate-800 p-1 rounded-xl">
-          <button
-            onClick={() => setActiveRole('planner')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-              activeRole === 'planner'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <LayoutDashboard className="w-3.5 h-3.5" />
-            <span>Planlayıcı Radarı</span>
-          </button>
-
-          <button
-            onClick={() => setActiveRole('driver')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-              activeRole === 'driver'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Navigation className="w-3.5 h-3.5" />
-            <span>Şoför HUD (Dark Mode)</span>
-          </button>
-
-          <button
-            onClick={() => setActiveRole('parent')}
-            className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
-              activeRole === 'parent'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span>Veli App (Mobil)</span>
-          </button>
-        </div>
-      </div>
-
-      {/* RENDER ACTIVE ROLE VIEW */}
-      {activeRole === 'driver' && <DriverHUD />}
-      {activeRole === 'parent' && <ParentApp />}
+      <TopBar isMobile={false} notifications={notifications} onRoleChange={setActiveRole} activeRole={activeRole} />
       {activeRole === 'planner' && (
-        <div className="flex-1 flex overflow-hidden p-4">
-          {/* GLASSMORPHISM SIDEBAR */}
-          <motion.aside 
-            initial={{ x: -250 }}
-            animate={{ x: 0 }}
-            className="w-72 glass-panel m-2 flex flex-col justify-between"
-          >
-            <div className="p-6">
-              <div className="flex items-center gap-3 mb-10">
-                 <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-blue-400 flex items-center justify-center shadow-lg shadow-blue-500/30">
-                    <CarFront className="text-white w-6 h-6" />
-                 </div>
-                 <h1 className="text-2xl font-display font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
-                   ShuttleX
-                 </h1>
-              </div>
-
-              <nav className="space-y-3">
-                <SidebarItem icon={<LayoutDashboard />} label="Sistem Özeti" isActive={activeTab === 'dashboard'} onClick={() => setActiveTab('dashboard')} />
-                <SidebarItem icon={<MapIcon />} label="Canlı Radar" isActive={activeTab === 'radar'} onClick={() => setActiveTab('radar')} />
-                <SidebarItem icon={<Users />} label="Filo & Şoförler" isActive={activeTab === 'fleet'} onClick={() => setActiveTab('fleet')} />
-                <SidebarItem icon={<Settings />} label="Kurum Ayarları" isActive={activeTab === 'settings'} onClick={() => setActiveTab('settings')} />
-                <SidebarItem icon={<CreditCard />} label="Abonelik & Fatura" isActive={activeTab === 'billing'} onClick={() => setActiveTab('billing')} />
-              </nav>
-
-              {/* DOCUMENT AI TRIGGER BUTTON */}
-              <div className="mt-8">
-                <button
-                  onClick={() => setIsDocumentAIOpen(true)}
-                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-purple-600/30 to-indigo-600/30 border border-purple-500/40 hover:border-purple-500 text-purple-200 text-xs font-bold flex items-center justify-center gap-2 transition-all shadow-lg hover:shadow-purple-600/20"
-                >
-                  <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
-                  <span>Fotoğraftan Rota (Document AI)</span>
+        <div className={`flex-1 flex ${isTablet ? 'overflow-y-auto' : 'overflow-hidden'} p-2 sm:p-3 lg:p-4`}>
+          {!isTablet && (
+            <PremiumSidebar activeTab={activeTab} onTabChange={setActiveTab} onDocumentAIOpen={() => setIsPhotoRouteOpen(true)} />
+          )}
+          <main className="flex-1 flex flex-col p-1 sm:p-2 min-w-0">
+            {isTablet && (
+              <div className="flex items-center gap-2 mb-4 overflow-x-auto pb-1">
+                <div className="flex gap-1 bg-slate-900/80 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-slate-800 text-[8px] sm:text-xs font-bold flex-shrink-0">
+                  {tabIds.map((tab) => (
+                    <button key={tab} onClick={() => setActiveTab(tab)} className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-colors whitespace-nowrap ${activeTab === tab ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>
+                      {tab === 'dashboard' ? 'Özet' : tab === 'radar' ? 'Radar' : tab === 'fleet' ? 'Filo' : tab === 'settings' ? 'Ayarlar' : 'Fatura'}
+                    </button>
+                  ))}
+                </div>
+                <button onClick={() => setIsPhotoRouteOpen(true)} className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-purple-600/30 to-indigo-600/30 border border-purple-500/40 text-purple-300 text-[8px] sm:text-xs font-bold whitespace-nowrap flex items-center gap-1">
+                  AI Rota
+                </button>
+                <button onClick={() => setIsDocumentOpen(true)} className="px-2 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-gradient-to-r from-blue-600/30 to-emerald-600/30 border border-blue-500/40 text-blue-300 text-[8px] sm:text-xs font-bold whitespace-nowrap flex items-center gap-1">
+                  Belge
                 </button>
               </div>
-            </div>
-
-            <div className="p-6 border-t border-slate-800/80">
-              <div className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity">
-                <img src="https://i.pravatar.cc/100?img=14" alt="Planlayıcı" className="w-10 h-10 rounded-full border-2 border-slate-700" />
-                <div className="flex flex-col">
-                  <span className="text-sm font-semibold">Koray G.</span>
-                  <span className="text-xs text-gray-400">Baş Planlayıcı</span>
-                </div>
-                <LogOut className="w-4 h-4 text-gray-400 ml-auto" />
-              </div>
-            </div>
-          </motion.aside>
-
-          {/* MAIN CONTENT AREA */}
-          <main className="flex-1 flex flex-col p-2 pl-0">
-            <header className="h-20 glass-panel mb-4 flex items-center justify-between px-8 relative">
-              <div className="flex items-center gap-4 relative">
-                <Search className="w-5 h-5 text-gray-400 absolute left-3" />
-                <input 
-                  type="text" 
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rota, öğrenci veya araç plakası ara..." 
-                  className="bg-slate-900/50 border border-slate-800 text-white text-sm rounded-full pl-10 pr-4 py-2.5 w-80 focus:outline-none focus:border-blue-500 transition-colors"
-                />
-              </div>
-
-              <div className="flex items-center gap-5">
-                 <div className="text-xs text-gray-300 font-medium px-4 py-2 rounded-full bg-slate-900/60 border border-slate-800">
-                   Sistem Durumu: <span className="text-emerald-400 ml-1">Kusursuz (4ms Gecikme)</span>
-                 </div>
-                 
-                 {/* Notifications Bell */}
-                 <div className="relative">
-                   <button
-                     onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                     className="relative p-2 rounded-full hover:bg-white/5 transition-colors"
-                   >
-                     <BellRing className="w-5 h-5 text-gray-300" />
-                     <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-[#151f32]"></span>
-                   </button>
-
-                   {/* Notification Dropdown */}
-                   <AnimatePresence>
-                     {isNotificationsOpen && (
-                       <motion.div
-                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                         animate={{ opacity: 1, y: 0, scale: 1 }}
-                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                         className="absolute right-0 top-12 w-80 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-2xl z-50 space-y-3"
-                       >
-                         <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                           <h4 className="text-xs font-bold text-white uppercase tracking-wider">Sistem Bildirimleri</h4>
-                           <button onClick={() => setIsNotificationsOpen(false)} className="text-slate-400 hover:text-white">
-                             <X className="w-4 h-4" />
-                           </button>
-                         </div>
-
-                         <div className="space-y-2">
-                           {notifications.map((n) => (
-                             <div key={n.id} className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 text-xs space-y-1">
-                               <div className="flex items-center gap-1.5 font-bold text-white">
-                                 {n.type === 'alert' ? (
-                                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                                 ) : (
-                                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                                 )}
-                                 <span>{n.title}</span>
-                               </div>
-                               <p className="text-[11px] text-slate-400">{n.text}</p>
-                               <span className="text-[9px] text-slate-600 block">{n.time}</span>
-                             </div>
-                           ))}
-                         </div>
-                       </motion.div>
-                     )}
-                   </AnimatePresence>
-                 </div>
-              </div>
-            </header>
-
-            {/* TAB CONTENT SWITCHER */}
-            <div className="flex-1 overflow-y-auto">
-              {activeTab === 'dashboard' && <SystemDashboard />}
-              {activeTab === 'radar' && <PlannerRadar routes={filteredRoutes} />}
-              {activeTab === 'fleet' && <FleetManagement />}
-              {activeTab === 'settings' && <SettingsView />}
-              {activeTab === 'billing' && <BillingView />}
+            )}
+            <div className="flex-1 overflow-y-auto px-0.5">
+              <AnimatePresence mode="wait">
+                <motion.div key={activeTab} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={{ duration: 0.15 }}>
+                  {renderContent()}
+                </motion.div>
+              </AnimatePresence>
             </div>
           </main>
-
-          {/* DOCUMENT AI MODAL */}
-          <DocumentAIModal
-            isOpen={isDocumentAIOpen}
-            onClose={() => setIsDocumentAIOpen(false)}
-            onNodesImported={handleNodesImported}
-          />
+          <PhotoRouteModule isOpen={isPhotoRouteOpen} onClose={() => setIsPhotoRouteOpen(false)} onNodesImported={handleNodesImported} />
+          <DocumentModule isOpen={isDocumentOpen} onClose={() => setIsDocumentOpen(false)} />
         </div>
       )}
-    </div>
-  );
-}
-
-function SidebarItem({ icon, label, isActive, onClick }: any) {
-  return (
-    <div 
-      onClick={onClick}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-300 ${
-        isActive 
-         ? 'bg-blue-600/15 text-white border border-blue-500/30 shadow-lg' 
-         : 'text-gray-400 hover:bg-white/5 hover:text-gray-200'
-      }`}
-    >
-      {React.cloneElement(icon, { className: `w-5 h-5 ${isActive ? 'text-blue-400' : ''}` })}
-      <span className="font-medium">{label}</span>
     </div>
   );
 }

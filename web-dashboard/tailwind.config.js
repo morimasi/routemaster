@@ -58,6 +58,18 @@ export default {
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
       },
+      screens: {
+        'xs': '375px',
+        'watch': '280px',
+        'mobile': '640px',
+        'tablet': '768px',
+        'laptop': '1024px',
+        'desktop': '1280px',
+      },
+      spacing: {
+        'safe-bottom': 'env(safe-area-inset-bottom, 0px)',
+        'safe-top': 'env(safe-area-inset-top, 0px)',
+      },
     },
   },
   plugins: [],

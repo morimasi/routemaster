@@ -1,0 +1,1 @@
+export { ParentModule } from './ParentModule';

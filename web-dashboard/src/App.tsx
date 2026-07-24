@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   LayoutDashboard, 
   Map as MapIcon, 
@@ -11,18 +11,26 @@ import {
   LogOut,
   Sparkles,
   Smartphone,
-  Navigation
+  Navigation,
+  X,
+  AlertTriangle,
+  CheckCircle2
 } from 'lucide-react';
 import { DriverHUD } from './components/DriverHUD';
 import { ParentApp } from './components/ParentApp';
 import { DocumentAIModal } from './components/DocumentAIModal';
 import { PlannerRadar } from './components/planner/PlannerRadar';
+import { SystemDashboard } from './components/planner/SystemDashboard';
+import { FleetManagement } from './components/planner/FleetManagement';
+import { SettingsView } from './components/planner/SettingsView';
 import type { Route, DocumentAINode } from './types';
 
 function App() {
   const [activeRole, setActiveRole] = useState<'planner' | 'driver' | 'parent'>('planner');
-  const [activeTab, setActiveTab] = useState('radar');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'radar' | 'fleet' | 'settings'>('radar');
   const [isDocumentAIOpen, setIsDocumentAIOpen] = useState(false);
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Dynamic state for routes
   const [routes, setRoutes] = useState<Route[]>([
@@ -30,6 +38,19 @@ function App() {
     { id: '2', name: 'Anaokulu Öğlen Bağlantısı', vehiclePlate: '34 CD 5678', status: 'WARNING', alertsCount: 1, progressPercent: 40, nodes: [] },
     { id: '3', name: 'Akşam Fabrika Servisi', vehiclePlate: '34 EF 9012', status: 'SCHEDULED', alertsCount: 0, progressPercent: 10, nodes: [] }
   ]);
+
+  // Notifications state
+  const [notifications] = useState([
+    { id: 1, title: 'v4.1 Veli İptal Bildirimi', text: 'Eymen Altunel için veli devamsızlık bildirdi. Şoför HUD uyarısı aktif.', time: '2 dk önce', type: 'alert' },
+    { id: 2, title: 'VRPTW Rota Optimizasyonu', text: 'Sabah bandı rotalarında %19.2 yakıt tasarrufu sağlandı.', time: '15 dk önce', type: 'success' },
+  ]);
+
+  // Filter routes by search query
+  const filteredRoutes = routes.filter(
+    (r) =>
+      r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      r.vehiclePlate.toLowerCase().includes(searchQuery.toLowerCase())
+  );
 
   // Handler when Document AI imports new extracted nodes
   const handleNodesImported = (extractedNodes: DocumentAINode[]) => {
@@ -50,6 +71,7 @@ function App() {
       })),
     };
     setRoutes((prev) => [newRoute, ...prev]);
+    setActiveTab('radar');
   };
 
   return (
@@ -155,11 +177,13 @@ function App() {
 
           {/* MAIN CONTENT AREA */}
           <main className="flex-1 flex flex-col p-2 pl-0">
-            <header className="h-20 glass-panel mb-4 flex items-center justify-between px-8">
+            <header className="h-20 glass-panel mb-4 flex items-center justify-between px-8 relative">
               <div className="flex items-center gap-4 relative">
                 <Search className="w-5 h-5 text-gray-400 absolute left-3" />
                 <input 
                   type="text" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Rota, öğrenci veya araç plakası ara..." 
                   className="bg-slate-900/50 border border-slate-800 text-white text-sm rounded-full pl-10 pr-4 py-2.5 w-80 focus:outline-none focus:border-blue-500 transition-colors"
                 />
@@ -170,16 +194,61 @@ function App() {
                    Sistem Durumu: <span className="text-emerald-400 ml-1">Kusursuz (4ms Gecikme)</span>
                  </div>
                  
-                 <button className="relative p-2 rounded-full hover:bg-white/5 transition-colors">
-                   <BellRing className="w-5 h-5 text-gray-300" />
-                   <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-[#151f32]"></span>
-                 </button>
+                 {/* Notifications Bell */}
+                 <div className="relative">
+                   <button
+                     onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                     className="relative p-2 rounded-full hover:bg-white/5 transition-colors"
+                   >
+                     <BellRing className="w-5 h-5 text-gray-300" />
+                     <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-amber-500 rounded-full border-2 border-[#151f32]"></span>
+                   </button>
+
+                   {/* Notification Dropdown */}
+                   <AnimatePresence>
+                     {isNotificationsOpen && (
+                       <motion.div
+                         initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                         animate={{ opacity: 1, y: 0, scale: 1 }}
+                         exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                         className="absolute right-0 top-12 w-80 bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-2xl z-50 space-y-3"
+                       >
+                         <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                           <h4 className="text-xs font-bold text-white uppercase tracking-wider">Sistem Bildirimleri</h4>
+                           <button onClick={() => setIsNotificationsOpen(false)} className="text-slate-400 hover:text-white">
+                             <X className="w-4 h-4" />
+                           </button>
+                         </div>
+
+                         <div className="space-y-2">
+                           {notifications.map((n) => (
+                             <div key={n.id} className="p-2.5 bg-slate-950 rounded-xl border border-slate-800 text-xs space-y-1">
+                               <div className="flex items-center gap-1.5 font-bold text-white">
+                                 {n.type === 'alert' ? (
+                                   <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
+                                 ) : (
+                                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                 )}
+                                 <span>{n.title}</span>
+                               </div>
+                               <p className="text-[11px] text-slate-400">{n.text}</p>
+                               <span className="text-[9px] text-slate-600 block">{n.time}</span>
+                             </div>
+                           ))}
+                         </div>
+                       </motion.div>
+                     )}
+                   </AnimatePresence>
+                 </div>
               </div>
             </header>
 
-            {/* MODULAR PLANNER RADAR COMPONENT */}
+            {/* TAB CONTENT SWITCHER */}
             <div className="flex-1 overflow-y-auto">
-              <PlannerRadar routes={routes} />
+              {activeTab === 'dashboard' && <SystemDashboard />}
+              {activeTab === 'radar' && <PlannerRadar routes={filteredRoutes} />}
+              {activeTab === 'fleet' && <FleetManagement />}
+              {activeTab === 'settings' && <SettingsView />}
             </div>
           </main>
 

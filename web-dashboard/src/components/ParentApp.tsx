@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bus, Clock, MapPin, QrCode, Send, Lock, MessageSquare, UserCheck,
-  AlertCircle, ChevronDown, CheckCircle2, X, Star, Phone
+  AlertCircle, ChevronDown, CheckCircle2, Star, Phone
 } from 'lucide-react';
 import { ShuttleXApiService } from '../services/api';
 import type { ChatMessage } from '../types';
@@ -66,7 +66,7 @@ export const ParentApp: React.FC = () => {
   // Init chat room on tab switch
   useEffect(() => {
     if (activeTab !== 'chat' || roomId) return;
-    ShuttleXApiService.initChatRoom('t-1001', 'p-9001', 't-7001').then(res => {
+    ShuttleXApiService.initChatRoom('t-1001', 'p-9001', 't-7001').then((res: any) => {
       setRoomId(res.room_id ?? '');
     });
   }, [activeTab, roomId]);

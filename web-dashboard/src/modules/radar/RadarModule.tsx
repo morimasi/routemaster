@@ -14,7 +14,6 @@ interface RadarModuleProps {
 }
 
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
-const GOOGLE_MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID || '';
 
 function loadGoogleMaps(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -115,7 +114,6 @@ export const RadarModule: React.FC<RadarModuleProps> = ({ routes: externalRoutes
     mapInstance.current = new gm.Map(mapRef.current, {
       center: { lat: 41.092, lng: 29.088 },
       zoom: 13,
-      mapId: GOOGLE_MAP_ID || undefined,
       disableDefaultUI: true,
       gestureHandling: 'greedy',
       backgroundColor: '#0f172a',

@@ -15,8 +15,12 @@ function loadGoogleMaps(): Promise<void> {
     }
     const s = document.createElement('script');
     s.id = id;
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=maps,marker,routes&v=beta&loading=async`;
-    s.async = true; s.onload = () => resolve(); s.onerror = () => reject(new Error('Google Maps yüklenemedi'));
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=maps,marker,routes&v=beta&loading=async&callback=initNavMap`;
+    (window as any).initNavMap = () => {
+      delete (window as any).initNavMap;
+      resolve();
+    };
+    s.onerror = () => reject(new Error('Google Maps yüklenemedi'));
     document.head.appendChild(s);
   });
 }

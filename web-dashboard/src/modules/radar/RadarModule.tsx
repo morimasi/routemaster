@@ -26,9 +26,11 @@ function loadGoogleMaps(): Promise<void> {
     }
     const s = document.createElement('script');
     s.id = id;
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=maps,marker&v=beta&loading=async`;
-    s.async = true;
-    s.onload = () => resolve();
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=maps,marker&v=beta&loading=async&callback=initRadarMap`;
+    (window as any).initRadarMap = () => {
+      delete (window as any).initRadarMap;
+      resolve();
+    };
     s.onerror = () => reject(new Error('Google Maps yüklenemedi'));
     document.head.appendChild(s);
   });

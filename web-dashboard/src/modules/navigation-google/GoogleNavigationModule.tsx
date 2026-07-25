@@ -4,6 +4,7 @@ import type { NavigationRoute } from '../navigation-core';
 import { NavigationApi, formatDistance, formatDuration } from '../navigation-core';
 
 const GOOGLE_API_KEY = import.meta.env.VITE_GOOGLE_API_KEY || '';
+const GOOGLE_MAP_ID = import.meta.env.VITE_GOOGLE_MAP_ID || '';
 
 function loadGoogleMaps(): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -14,7 +15,7 @@ function loadGoogleMaps(): Promise<void> {
     }
     const s = document.createElement('script');
     s.id = id;
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=maps,marker,routes&v=beta`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=maps,marker,routes&v=beta&loading=async`;
     s.async = true; s.onload = () => resolve(); s.onerror = () => reject(new Error('Google Maps yüklenemedi'));
     document.head.appendChild(s);
   });
@@ -98,6 +99,7 @@ export const GoogleNavigationModule: React.FC = () => {
     const gm = window.google.maps;
     mapInstance.current = new gm.Map(mapRef.current, {
       center: { lat: 41.088, lng: 29.088 }, zoom: 14,
+      mapId: GOOGLE_MAP_ID || undefined,
       disableDefaultUI: true, gestureHandling: 'greedy', backgroundColor: '#0f172a',
       styles: MAP_STYLES,
     });

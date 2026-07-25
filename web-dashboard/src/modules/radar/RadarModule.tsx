@@ -26,7 +26,7 @@ function loadGoogleMaps(): Promise<void> {
     }
     const s = document.createElement('script');
     s.id = id;
-    s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=maps,marker&v=beta`;
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_API_KEY}&libraries=maps,marker&v=beta&loading=async`;
     s.async = true;
     s.onload = () => resolve();
     s.onerror = () => reject(new Error('Google Maps yüklenemedi'));
@@ -161,7 +161,7 @@ export const RadarModule: React.FC<RadarModuleProps> = ({ routes: externalRoutes
           content,
           title: v.plate,
         });
-        marker.addListener('click', () => setSelectedVehicle(v));
+        marker.addListener('gmp-click', () => setSelectedVehicle(v));
         markersRef.current.set(v.id, marker);
       } else {
         marker.position = { lat: v.lat, lng: v.lng };

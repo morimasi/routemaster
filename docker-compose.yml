@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL 16 + PostGIS (Core Veri Tabanı)
+  postgres-db:
+    image: postgis/postgis:16-3.4 # Premium Seçim: Hem PG 16 hem de Coğrafi Rota Uzantısı hazır
+    container_name: shuttlex_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: shuttlex_admin
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-premium_secret_p4ssw0rd}
+      POSTGRES_DB: shuttlex_core
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./infra/db-init:/docker-entrypoint-initdb.d # Otomatik şema kurulumu için
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U shuttlex_admin -d shuttlex_core"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # 2. Redis Cluster (Gecikmesiz Telemetri Önbelleği)
+  redis-cache:
+    image: redis:7.2-alpine
+    container_name: shuttlex_redis
+    restart: on-failure
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redisdata:/data
+
+  # 3. Apache Kafka (Olay Güdümlü Mesaj Bus'ı) - Kraft Modu (Zookeeper olmadan)
+  kafka-broker:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: shuttlex_kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka-broker:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka-broker:29093
+      KAFKA_LISTENERS: PLAINTEXT://kafka-broker:29092,CONTROLLER://kafka-broker:29093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      CLUSTER_ID: MkU3OEVBNTcwNTJENDM2Qk
+
+volumes:
+  pgdata:
+    driver: local
+  redisdata:
+    driver: local

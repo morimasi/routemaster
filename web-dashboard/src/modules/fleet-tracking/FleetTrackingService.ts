@@ -119,13 +119,13 @@ export function computeFleetStats(vehicles: FleetVehicle[]): FleetStats {
 }
 
 export class FleetTrackingService {
-  private static vehicles: FleetVehicle[] = [...MOCK_VEHICLES.map(v => ({
-    ...v, trail: [], position: { ...v.position, timestamp: Date.now() },
-    alerts: v.alerts.map(a => ({ ...a })), lastUpdated: Date.now(),
-  }))];
+  private static vehicles: FleetVehicle[] = [];
   private static callbacks: Set<(vehicles: FleetVehicle[]) => void> = new Set();
   private static timer: ReturnType<typeof setInterval> | null = null;
   private static trailEnabled = false;
+  private static ws: WebSocket | null = null;
+  private static wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private static useMock = true;
 
   static getVehicles(): FleetVehicle[] { return this.vehicles.map(v => ({ ...v, trail: [...v.trail] })); }
   static getGroups(): FleetGroup[] { return MOCK_GROUPS; }
@@ -140,6 +140,7 @@ export class FleetTrackingService {
       if (res.ok) {
         const data = await res.json();
         if (data?.vehicles?.length) {
+          this.useMock = false;
           this.vehicles = data.vehicles.map((v: FleetVehicle) => ({
             ...v, trail: [],
             alerts: v.alerts?.map((a: any) => ({ ...a })) || [],
@@ -148,19 +149,55 @@ export class FleetTrackingService {
           return this.getVehicles();
         }
       }
-    } catch { /* API unavailable, use mock */ }
+    } catch { /* API unavailable */ }
+    this.useMock = true;
+    this.vehicles = [...MOCK_VEHICLES.map(v => ({
+      ...v, trail: [], position: { ...v.position, timestamp: Date.now() },
+      alerts: v.alerts.map(a => ({ ...a })), lastUpdated: Date.now(),
+    }))];
     return this.getVehicles();
   }
 
   static subscribe(callback: (vehicles: FleetVehicle[]) => void): () => void {
     this.callbacks.add(callback);
-    if (!this.timer) {
+    this.connectWebSocket();
+    if (!this.timer && this.useMock) {
       this.timer = setInterval(() => this.simulateMovement(), 3000);
     }
     return () => {
       this.callbacks.delete(callback);
-      if (this.callbacks.size === 0 && this.timer) { clearInterval(this.timer); this.timer = null; }
+      if (this.callbacks.size === 0) {
+        if (this.timer) { clearInterval(this.timer); this.timer = null; }
+        this.disconnectWebSocket();
+      }
     };
+  }
+
+  private static connectWebSocket() {
+    if (this.ws?.readyState === WebSocket.OPEN) return;
+    try {
+      const wsUrl = API_BASE.replace(/^http/, 'ws');
+      this.ws = new WebSocket(`${wsUrl}/?tenant=t-1001`);
+      this.ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data?.vehicles) {
+            this.vehicles = data.vehicles;
+            this.notify();
+          }
+        } catch { /* ignore malformed */ }
+      };
+      this.ws.onclose = () => {
+        this.ws = null;
+        this.wsReconnectTimer = setTimeout(() => this.connectWebSocket(), 5000);
+      };
+      this.ws.onerror = () => { this.ws?.close(); };
+    } catch { /* WS unavailable, mock will be used */ }
+  }
+
+  private static disconnectWebSocket() {
+    if (this.wsReconnectTimer) { clearTimeout(this.wsReconnectTimer); this.wsReconnectTimer = null; }
+    if (this.ws) { this.ws.onclose = null; this.ws.close(); this.ws = null; }
   }
 
   static enableTrails(enabled: boolean) { this.trailEnabled = enabled; }
@@ -174,6 +211,7 @@ export class FleetTrackingService {
 
   static cleanup() {
     if (this.timer) { clearInterval(this.timer); this.timer = null; }
+    this.disconnectWebSocket();
     this.callbacks.clear();
   }
 

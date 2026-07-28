@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Search, X, MapPin, Clock, Star, DollarSign, Navigation, Phone, Globe, Wifi, LocalParking, Restaurant, Hotel, ShoppingBag, LocalHospital, DirectionsCar } from 'lucide-react';
-import { PlacesService, createAutocomplete, createSearchBox } from './PlacesService';
-import type { AutocompletePrediction, PlaceResultExtended, PlaceType, PLACE_TYPE_LABELS } from './types';
+import { Search, X, MapPin, Navigation, Utensils, Hotel, ShoppingBag, HeartPulse, Fuel, Car } from 'lucide-react';
+import { PlacesService } from './PlacesService';
+import type { AutocompletePrediction, PlaceResultExtended, PlaceType } from './types';
+import { PLACE_TYPE_LABELS } from './types';
 
 interface PlaceAutocompleteProps {
   value: string;
@@ -40,7 +41,7 @@ export const PlaceAutocomplete: React.FC<PlaceAutocompleteProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const debounceRef = useRef<NodeJS.Timeout>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const fetchPredictions = useCallback(async (inputValue: string) => {
     if (!window.google?.maps?.places) {
@@ -55,12 +56,10 @@ export const PlaceAutocomplete: React.FC<PlaceAutocompleteProps> = ({
 
     setIsLoading(true);
     try {
-      const results = await PlacesService.getPlacePredictions({
-        input: inputValue,
-        types,
-        componentRestrictions,
-        sessionToken: PlacesService.getSessionToken(),
-      });
+      const results = await PlacesService.getPlacePredictions(
+        { input: inputValue },
+        { types, componentRestrictions }
+      );
       setPredictions(results);
       setSelectedIndex(-1);
     } catch (error) {
@@ -129,7 +128,6 @@ export const PlaceAutocomplete: React.FC<PlaceAutocompleteProps> = ({
           'website', 'formatted_phone_number', 'international_phone_number',
           'price_level', 'reviews'
         ],
-        sessionToken: PlacesService.getSessionToken(),
       });
       onSelect?.(place as PlaceResultExtended);
       onChange(prediction.description || '');
@@ -155,12 +153,12 @@ export const PlaceAutocomplete: React.FC<PlaceAutocompleteProps> = ({
   };
 
   const getTypeIcon = (types: string[]) => {
-    if (types.includes('restaurant') || types.includes('cafe') || types.includes('food')) return <Restaurant className="w-4 h-4 text-amber-500" />;
+    if (types.includes('restaurant') || types.includes('cafe') || types.includes('food')) return <Utensils className="w-4 h-4 text-amber-500" />;
     if (types.includes('lodging') || types.includes('hotel')) return <Hotel className="w-4 h-4 text-blue-500" />;
     if (types.includes('shopping_mall') || types.includes('store')) return <ShoppingBag className="w-4 h-4 text-purple-500" />;
-    if (types.includes('hospital') || types.includes('pharmacy') || types.includes('doctor')) return <LocalHospital className="w-4 h-4 text-red-500" />;
-    if (types.includes('gas_station') || types.includes('parking')) return <LocalParking className="w-4 h-4 text-green-500" />;
-    if (types.includes('transit_station') || types.includes('bus_station') || types.includes('train_station')) return <DirectionsCar className="w-4 h-4 text-indigo-500" />;
+    if (types.includes('hospital') || types.includes('pharmacy') || types.includes('doctor')) return <HeartPulse className="w-4 h-4 text-red-500" />;
+    if (types.includes('gas_station') || types.includes('parking')) return <Fuel className="w-4 h-4 text-green-500" />;
+    if (types.includes('transit_station') || types.includes('bus_station') || types.includes('train_station')) return <Car className="w-4 h-4 text-indigo-500" />;
     return <MapPin className="w-4 h-4 text-slate-500" />;
   };
 

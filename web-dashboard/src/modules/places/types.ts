@@ -1,19 +1,3 @@
-export interface AutocompletePrediction extends google.maps.places.AutocompletePrediction {}
-
-export interface PlaceResult extends google.maps.places.PlaceResult {}
-
-export interface PlaceDetailsRequest extends google.maps.places.PlaceDetailsRequest {}
-
-export interface PlaceDetailsResponse extends google.maps.places.PlaceDetailsResponse {}
-
-export interface NearbySearchRequest extends google.maps.places.PlaceSearchRequest {}
-
-export interface TextSearchRequest extends google.maps.places.TextSearchRequest {}
-
-export interface AutocompleteOptions extends google.maps.places.AutocompleteOptions {}
-
-export interface SearchBoxOptions extends google.maps.places.SearchBoxOptions {}
-
 export interface PlaceGeometry {
   location: google.maps.LatLng;
   viewport?: google.maps.LatLngBounds;
@@ -46,17 +30,82 @@ export interface PlaceReview {
   time: number;
 }
 
-export interface PlaceResultExtended extends PlaceResult {
+export interface AutocompletePrediction extends google.maps.places.AutocompletePrediction {}
+
+export interface PlaceResultExtended extends google.maps.places.PlaceResult {}
+
+export interface PlaceDetailsRequest extends google.maps.places.PlaceDetailsRequest {}
+
+export interface AutocompleteOptions extends google.maps.places.AutocompleteOptions {}
+
+export interface SearchBoxOptions extends google.maps.places.SearchBoxOptions {}
+
+export interface NearbySearchRequest extends google.maps.places.PlaceSearchRequest {}
+
+export interface TextSearchRequest extends google.maps.places.TextSearchRequest {}
+
+export interface PlaceResult {
+  place_id: string;
+  name: string;
+  formatted_address?: string;
   geometry?: PlaceGeometry;
+  types?: string[];
+  rating?: number;
+  user_ratings_total?: number;
   photos?: PlacePhoto[];
   opening_hours?: PlaceOpeningHours;
   reviews?: PlaceReview[];
-  rating?: number;
-  user_ratings_total?: number;
-  price_level?: number;
   website?: string;
-  international_phone_number?: string;
   formatted_phone_number?: string;
+  international_phone_number?: string;
+  price_level?: number;
+  vicinity?: string;
+  icon?: string;
+  icon_background_color?: string;
+  icon_mask_base_uri?: string;
+}
+
+export interface PlaceDetailsRequest {
+  placeId: string;
+  fields?: string[];
+  sessionToken?: google.maps.places.AutocompleteSessionToken;
+}
+
+export interface NearbySearchRequest {
+  location: google.maps.LatLng | google.maps.LatLngLiteral;
+  radius: number;
+  keyword?: string;
+  type?: string;
+  minPriceLevel?: number;
+  maxPriceLevel?: number;
+  openNow?: boolean;
+  rankBy?: google.maps.places.RankBy;
+}
+
+export interface TextSearchRequest {
+  query: string;
+  location?: google.maps.LatLng | google.maps.LatLngLiteral;
+  radius?: number;
+  type?: string;
+  minPriceLevel?: number;
+  maxPriceLevel?: number;
+  openNow?: boolean;
+}
+
+export interface AutocompleteOptions {
+  types?: string[];
+  componentRestrictions?: google.maps.places.ComponentRestrictions;
+  bounds?: google.maps.LatLngBounds | google.maps.LatLngBoundsLiteral;
+  strictBounds?: boolean;
+  origin?: google.maps.LatLng | google.maps.LatLngLiteral;
+  location?: google.maps.LatLng | google.maps.LatLngLiteral;
+  radius?: number;
+  offset?: number;
+  sessionToken?: google.maps.places.AutocompleteSessionToken;
+}
+
+export interface SearchBoxOptions {
+  bounds?: google.maps.LatLngBounds | google.maps.LatLngBoundsLiteral;
 }
 
 export type PlaceType = 
@@ -121,7 +170,6 @@ export type PlaceType =
   | 'florist'
   | 'gift_shop'
   | 'pet_store'
-  | 'veterinary_care'
   | 'school'
   | 'university'
   | 'library'
@@ -198,7 +246,6 @@ export const PLACE_TYPE_LABELS: Record<PlaceType, string> = {
   florist: 'Çiçekçi',
   gift_shop: 'Hediye Mağazası',
   pet_store: 'Pet Shop',
-  veterinary_care: 'Veteriner',
   school: 'Okul',
   university: 'Üniversite',
   library: 'Kütüphane',

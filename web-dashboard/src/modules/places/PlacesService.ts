@@ -1,4 +1,4 @@
-import type { AutocompletePrediction, PlaceResult, PlaceDetailsRequest, PlaceDetailsResponse } from '../../types/google-maps';
+import type { PlaceDetailsRequest } from './types';
 
 export class PlacesService {
   private static autocompleteService: google.maps.places.AutocompleteService | null = null;
@@ -27,15 +27,24 @@ export class PlacesService {
   }
 
   static async getPlacePredictions(
-    request: google.maps.places.AutocompleteRequest
-  ): Promise<AutocompletePrediction[]> {
+    request: Omit<google.maps.places.AutocompleteRequest, 'types' | 'componentRestrictions'>,
+    options?: {
+      types?: string[];
+      componentRestrictions?: google.maps.places.ComponentRestrictions;
+    }
+  ): Promise<google.maps.places.AutocompletePrediction[]> {
     if (!this.autocompleteService) {
       throw new Error('PlacesService not initialized');
     }
 
     return new Promise((resolve, reject) => {
       this.autocompleteService!.getPlacePredictions(
-        { ...request, sessionToken: this.getSessionToken() },
+        { 
+          ...request, 
+          sessionToken: this.getSessionToken(),
+          types: options?.types,
+          componentRestrictions: options?.componentRestrictions,
+        },
         (predictions, status) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
             resolve(predictions);
@@ -50,15 +59,15 @@ export class PlacesService {
   }
 
   static async getPlaceDetails(
-    request: PlaceDetailsRequest
-  ): Promise<PlaceResult> {
+    request: Omit<PlaceDetailsRequest, 'sessionToken'>
+  ): Promise<google.maps.places.PlaceResult> {
     if (!this.placesService) {
       throw new Error('PlacesService not initialized');
     }
 
     return new Promise((resolve, reject) => {
       this.placesService!.getDetails(
-        request,
+        { ...request, sessionToken: this.getSessionToken() },
         (place, status) => {
           if (status === google.maps.places.PlacesServiceStatus.OK && place) {
             resolve(place);
@@ -72,7 +81,7 @@ export class PlacesService {
 
   static async searchNearby(
     request: google.maps.places.PlaceSearchRequest
-  ): Promise<PlaceResult[]> {
+  ): Promise<google.maps.places.PlaceResult[]> {
     if (!this.placesService) {
       throw new Error('PlacesService not initialized');
     }
@@ -95,7 +104,7 @@ export class PlacesService {
 
   static async searchText(
     request: google.maps.places.TextSearchRequest
-  ): Promise<PlaceResult[]> {
+  ): Promise<google.maps.places.PlaceResult[]> {
     if (!this.placesService) {
       throw new Error('PlacesService not initialized');
     }

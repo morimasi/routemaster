@@ -49,12 +49,13 @@ export const ParentModule: React.FC = () => {
   const currentChild = children.find(c => c.id === selectedChildId);
 
   // --- Real-time vehicle position: WebSocket + REST polling fallback ---
+  const [usePolling, setUsePolling] = useState(false);
+
   useEffect(() => {
     const wsUrl = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/^http/, 'ws');
     let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout>;
     let pollTimer: ReturnType<typeof setInterval>;
-    let wsFailed = false;
 
     const pollPosition = () => {
       if (!vehicleInfo?.id) return;
@@ -71,10 +72,13 @@ export const ParentModule: React.FC = () => {
     function connect() {
       try {
         ws = new WebSocket(`${wsUrl}/ws`);
-        const failTimeout = setTimeout(() => { wsFailed = true; ws?.close(); }, 3000);
+        const failTimeout = setTimeout(() => {
+          ws?.close();
+          setUsePolling(true);
+        }, 3000);
         ws.onopen = () => {
           clearTimeout(failTimeout);
-          wsFailed = false;
+          setUsePolling(false);
           ws?.send(JSON.stringify({ type: 'subscribe', channel: 'vehicle:positions' }));
           clearInterval(pollTimer);
         };
@@ -92,17 +96,18 @@ export const ParentModule: React.FC = () => {
         };
         ws.onclose = () => {
           clearTimeout(failTimeout);
-          if (!wsFailed) reconnectTimer = setTimeout(connect, 5000);
+          if (!usePolling) reconnectTimer = setTimeout(connect, 5000);
         };
-        ws.onerror = () => { wsFailed = true; ws?.close(); };
-      } catch { wsFailed = true; }
+        ws.onerror = () => { ws?.close(); };
+      } catch { setUsePolling(true); }
     }
+
     connect();
 
-    if (wsFailed) pollTimer = setInterval(pollPosition, 3000);
+    if (usePolling) pollTimer = setInterval(pollPosition, 3000);
 
     return () => { ws?.close(); clearTimeout(reconnectTimer); clearInterval(pollTimer); };
-  }, [vehicleInfo?.id]);
+  }, [vehicleInfo?.id, usePolling]);
 
   // --- Data loading ---
   useEffect(() => {

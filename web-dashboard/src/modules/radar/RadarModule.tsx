@@ -116,6 +116,7 @@ export const RadarModule: React.FC<RadarModuleProps> = ({ routes: externalRoutes
       center: { lat: 41.092, lng: 29.088 },
       zoom: 13,
       mapId: GOOGLE_MAP_ID || undefined,
+      mapTypeId: 'roadmap',
       disableDefaultUI: true,
       gestureHandling: 'greedy',
       backgroundColor: '#0f172a',

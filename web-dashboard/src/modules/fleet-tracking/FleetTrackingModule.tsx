@@ -88,6 +88,7 @@ export const FleetTrackingModule: React.FC = () => {
     const mapOptions: google.maps.MapOptions = {
       center: { lat: 41.092, lng: 29.088 }, zoom: 12,
       mapId: GOOGLE_MAP_ID || undefined,
+      mapTypeId: 'roadmap',
       disableDefaultUI: true, gestureHandling: 'greedy', backgroundColor: '#0f172a',
     };
     if (!GOOGLE_MAP_ID) mapOptions.styles = MAP_STYLES;

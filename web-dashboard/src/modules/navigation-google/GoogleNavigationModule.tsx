@@ -104,6 +104,7 @@ export const GoogleNavigationModule: React.FC = () => {
     const mapOptions: google.maps.MapOptions = {
       center: { lat: 41.088, lng: 29.088 }, zoom: 14,
       mapId: GOOGLE_MAP_ID || undefined,
+      mapTypeId: 'roadmap',
       disableDefaultUI: true, gestureHandling: 'greedy', backgroundColor: '#0f172a',
     };
     if (!GOOGLE_MAP_ID) {

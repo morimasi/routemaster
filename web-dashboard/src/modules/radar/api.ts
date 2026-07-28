@@ -1,6 +1,12 @@
 import type { VehiclePosition, RadarRoute } from './types';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
+
+async function get<T>(url: string, params?: Record<string, string>): Promise<T> {
+  const res = await fetch(`${url}${params ? '?' + new URLSearchParams(params) : ''}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  return res.json();
+}
 
 async function post<T>(url: string, body: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -19,7 +25,7 @@ function delay(ms: number) {
 export class RadarApiService {
   static async getVehiclePositions(tenantId: string): Promise<VehiclePosition[]> {
     try {
-      return await post(`${API_BASE}/api/v5/radar/positions`, { tenant_id: tenantId });
+      return await get(`${API_BASE}/api/v5/radar/positions`, { tenant_id: tenantId });
     } catch {
       await delay(300);
       return [
@@ -33,7 +39,7 @@ export class RadarApiService {
 
   static async getRadarRoutes(tenantId: string): Promise<RadarRoute[]> {
     try {
-      return await post(`${API_BASE}/api/v5/radar/routes`, { tenant_id: tenantId });
+      return await get(`${API_BASE}/api/v5/radar/routes`, { tenant_id: tenantId });
     } catch {
       await delay(200);
       return [

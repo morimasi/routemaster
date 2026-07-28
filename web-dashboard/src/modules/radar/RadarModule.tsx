@@ -39,9 +39,6 @@ function loadGoogleMaps(): Promise<void> {
 const LATS = [41.0921, 41.0988, 41.0860, 41.0890, 41.0950, 41.0781, 41.1040, 41.0905];
 const LNGS = [29.0945, 29.1012, 29.0830, 29.0650, 29.1020, 29.0730, 29.0880, 29.0920];
 
-function randomLat(lat: number): number { return lat + (Math.random() - 0.5) * 0.008; }
-function randomLng(lng: number): number { return lng + (Math.random() - 0.5) * 0.008; }
-
 function createBusIcon(): HTMLDivElement {
   const el = document.createElement('div');
   el.innerHTML = `<div class="w-7 h-7 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full border-2 border-white shadow-[0_0_12px_rgba(59,130,246,0.6)] flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="white" stroke-width="2.5"><path d="M5 17h14M5 17a2 2 0 1 1-4 0M19 17a2 2 0 1 0 4 0M5 9l2-4h10l2 4M5 9v5M19 9v5"/></svg></div>`;
@@ -83,27 +80,21 @@ export const RadarModule: React.FC<RadarModuleProps> = ({ routes: externalRoutes
   }, []);
 
   useEffect(() => {
-    RadarApiService.getVehiclePositions('t-1001').then((data) => {
-      const withCoords = data.map((v, i) => ({
-        ...v,
-        lat: v.lat || LATS[i % LATS.length],
-        lng: v.lng || LNGS[i % LNGS.length],
-      }));
-      setVehiclePositions(withCoords);
-    });
-    const interval = setInterval(() => {
-      setVehiclePositions((prev) =>
-        prev.map((v) => {
-          if (v.status === 'STANDBY') return v;
-          return {
+    const fetchPositions = () => {
+      RadarApiService.getVehiclePositions('t-1001').then((data) => {
+        if (data && data.length > 0) {
+          const withCoords = data.map((v, i) => ({
             ...v,
-            lat: randomLat(v.lat),
-            lng: randomLng(v.lng),
-            speed: Math.floor(Math.random() * 20 + 30),
-          };
-        })
-      );
-    }, 3000);
+            lat: v.lat || LATS[i % LATS.length],
+            lng: v.lng || LNGS[i % LNGS.length],
+          }));
+          setVehiclePositions(withCoords);
+        }
+      });
+    };
+
+    fetchPositions();
+    const interval = setInterval(fetchPositions, 3000);
     return () => clearInterval(interval);
   }, []);
 

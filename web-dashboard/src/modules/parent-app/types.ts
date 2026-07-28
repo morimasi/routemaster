@@ -15,8 +15,8 @@ export interface ChildInfo {
 }
 
 export interface VehicleInfo {
-  plate: string; brand: string; model: string;
-  lat: number; lng: number; speed: number; status: string;
+  id?: string; plate: string; brand: string; model: string;
+  lat: number; lng: number; speed: number; heading?: number; status: string;
 }
 
 export interface DriverInfo {

@@ -48,17 +48,35 @@ export const ParentModule: React.FC = () => {
 
   const currentChild = children.find(c => c.id === selectedChildId);
 
-  // --- WebSocket for real-time vehicle position ---
+  // --- Real-time vehicle position: WebSocket + REST polling fallback ---
   useEffect(() => {
     const wsUrl = (import.meta.env.VITE_API_URL || 'http://localhost:4000').replace(/^http/, 'ws');
     let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout>;
+    let pollTimer: ReturnType<typeof setInterval>;
+    let wsFailed = false;
+
+    const pollPosition = () => {
+      if (!vehicleInfo?.id) return;
+      ParentApi.getVehiclePosition(vehicleInfo.id).then(pos => {
+        if (pos && pos.lat && pos.lng) {
+          setVehicleInfo(prev => prev ? { ...prev, lat: pos.lat, lng: pos.lng, speed: pos.speed, heading: pos.heading } : prev);
+          if (vehicleMarker.current && mapInstance.current) {
+            vehicleMarker.current.position = { lat: pos.lat, lng: pos.lng };
+          }
+        }
+      });
+    };
 
     function connect() {
       try {
         ws = new WebSocket(`${wsUrl}/ws`);
+        const failTimeout = setTimeout(() => { wsFailed = true; ws?.close(); }, 3000);
         ws.onopen = () => {
+          clearTimeout(failTimeout);
+          wsFailed = false;
           ws?.send(JSON.stringify({ type: 'subscribe', channel: 'vehicle:positions' }));
+          clearInterval(pollTimer);
         };
         ws.onmessage = (event) => {
           try {
@@ -73,14 +91,18 @@ export const ParentModule: React.FC = () => {
           } catch { /* ignore */ }
         };
         ws.onclose = () => {
-          reconnectTimer = setTimeout(connect, 5000);
+          clearTimeout(failTimeout);
+          if (!wsFailed) reconnectTimer = setTimeout(connect, 5000);
         };
-        ws.onerror = () => ws?.close();
-      } catch { /* ws unavailable */ }
+        ws.onerror = () => { wsFailed = true; ws?.close(); };
+      } catch { wsFailed = true; }
     }
     connect();
-    return () => { ws?.close(); clearTimeout(reconnectTimer); };
-  }, []);
+
+    if (wsFailed) pollTimer = setInterval(pollPosition, 3000);
+
+    return () => { ws?.close(); clearTimeout(reconnectTimer); clearInterval(pollTimer); };
+  }, [vehicleInfo?.id]);
 
   // --- Data loading ---
   useEffect(() => {

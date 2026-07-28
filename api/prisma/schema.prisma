@@ -1,0 +1,361 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  SYSTEM_ADMIN
+  PLANNER
+  DRIVER
+  TEACHER
+  PARENT
+}
+
+model Tenant {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  address   String?
+  phone     String?
+  email     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users       User[]
+  vehicles    Vehicle[]
+  drivers     Driver[]
+  students    Student[]
+  parents     Parent[]
+  routes      Route[]
+  alerts      Alert[]
+  documents   Document[]
+  invoices    Invoice[]
+  assignments DriverAssignment[]
+  geofences   Geofence[]
+  settings    TenantSetting?
+  subscription Subscription?
+}
+
+model User {
+  id         String   @id @default(uuid())
+  tenantId   String
+  email      String   @unique
+  password   String
+  name       String
+  role       UserRole
+  phone      String?
+  photo      String?
+  isActive   Boolean  @default(true)
+  lastLogin  DateTime?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tenant          Tenant         @relation(fields: [tenantId], references: [id])
+  chatMessages    ChatMessage[]
+  sentAssignments DriverAssignment[] @relation("assignedBy")
+  driverProfile   Driver?
+  parentProfile   Parent?
+}
+
+model Vehicle {
+  id           String   @id @default(uuid())
+  tenantId     String
+  plate        String
+  vin          String?
+  brand        String?
+  model        String?
+  year         Int?
+  color        String?
+  fuelType     String   @default("diesel")
+  capacity     Int      @default(16)
+  photo        String?
+  status       String   @default("STANDBY")
+  driverId     String?
+  position     Position?
+  lastUpdated  DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  tenant  Tenant   @relation(fields: [tenantId], references: [id])
+  driver  Driver?  @relation(fields: [driverId], references: [id])
+  routes  Route[]
+  alerts  Alert[]
+  trails  TrailPoint[]
+  tags    VehicleTag[]
+}
+
+model Driver {
+  id             String   @id @default(uuid())
+  tenantId       String
+  userId         String?  @unique
+  name           String
+  phone          String
+  email          String?
+  licenseNumber  String
+  licenseExpiry  DateTime?
+  rating         Float    @default(5.0)
+  totalTrips     Int      @default(0)
+  totalHours     Float    @default(0)
+  status         String   @default("ACTIVE")
+  photo          String?
+  hiredAt        DateTime?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  vehicles    Vehicle[]
+  routes      Route[]
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  user        User?    @relation(fields: [userId], references: [id])
+}
+
+model Parent {
+  id             String   @id @default(uuid())
+  tenantId       String
+  userId         String?  @unique
+  name           String
+  phone          String
+  email          String?
+  notificationToken String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  user      User?     @relation(fields: [userId], references: [id])
+  students  StudentParent[]
+}
+
+model Student {
+  id              String   @id @default(uuid())
+  tenantId        String
+  name            String
+  grade           String?
+  photo           String?
+  attendanceRate  Float    @default(1.0)
+  address         String?
+  lat             Float?
+  lng             Float?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant   Tenant   @relation(fields: [tenantId], references: [id])
+  parents  StudentParent[]
+  nodes    RouteNode[]
+}
+
+model StudentParent {
+  studentId String
+  parentId  String
+
+  student Student @relation(fields: [studentId], references: [id])
+  parent  Parent  @relation(fields: [parentId], references: [id])
+
+  @@id([studentId, parentId])
+}
+
+model Route {
+  id              String   @id @default(uuid())
+  tenantId        String
+  name            String
+  vehicleId       String?
+  driverId        String?
+  type            String   @default("morning")
+  status          String   @default("SCHEDULED")
+  progressPercent Float    @default(0)
+  totalDistance   Float?
+  totalDuration   Int?
+  scheduledAt     DateTime?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  tenant       Tenant      @relation(fields: [tenantId], references: [id])
+  vehicle      Vehicle?    @relation(fields: [vehicleId], references: [id])
+  driver       Driver?     @relation(fields: [driverId], references: [id])
+  nodes        RouteNode[]
+  alerts       Alert[]
+  assignments  DriverAssignment[]
+}
+
+model RouteNode {
+  id              String   @id @default(uuid())
+  routeId         String
+  studentId       String?
+  studentName     String
+  address         String
+  lat             Float
+  lng             Float
+  seq             Int
+  status          String   @default("PENDING")
+  absenceFlagged  Boolean  @default(false)
+  absenceReason   String?
+  estimatedTime   String?
+  actualTime      String?
+  driverNote      String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  route   Route   @relation(fields: [routeId], references: [id])
+  student Student? @relation(fields: [studentId], references: [id])
+}
+
+model Position {
+  id        String   @id @default(uuid())
+  vehicleId String   @unique
+  lat       Float
+  lng       Float
+  speed     Float    @default(0)
+  heading   Float    @default(0)
+  accuracy  Float    @default(5)
+  timestamp DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+}
+
+model TrailPoint {
+  id         String   @id @default(uuid())
+  vehicleId  String
+  lat        Float
+  lng        Float
+  speed      Float    @default(0)
+  heading    Float    @default(0)
+  snapToRoad Boolean  @default(true)
+  timestamp  DateTime @default(now())
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+}
+
+model Alert {
+  id              String   @id @default(uuid())
+  tenantId        String
+  vehicleId       String?
+  routeId         String?
+  type            String
+  severity        String   @default("warning")
+  message         String
+  lat             Float?
+  lng             Float?
+  acknowledged    Boolean  @default(false)
+  acknowledgedBy  String?
+  acknowledgedAt  DateTime?
+  timestamp       DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  vehicle Vehicle? @relation(fields: [vehicleId], references: [id])
+  route   Route?  @relation(fields: [routeId], references: [id])
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  roomId    String
+  senderId  String
+  text      String
+  encrypted Boolean  @default(true)
+  delivered Boolean  @default(true)
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  sender User @relation(fields: [senderId], references: [id])
+}
+
+model Geofence {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  lat       Float
+  lng       Float
+  radius    Float    @default(100)
+  type      String   @default("school")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model TenantSetting {
+  id                      String @id @default(uuid())
+  tenantId                String @unique
+  rlsPolicyActive         Boolean @default(true)
+  mfaEnabled              Boolean @default(true)
+  sessionTimeoutMinutes   Int     @default(30)
+  webhookUrl              String?
+  webhookActive           Boolean @default(false)
+  webhookEvents           String  @default("[]")
+  notificationEmail       String?
+  smsEnabled              Boolean @default(false)
+  pushEnabled             Boolean @default(true)
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model Subscription {
+  id            String   @id @default(uuid())
+  tenantId      String   @unique
+  plan          String   @default("Enterprise")
+  version       String   @default("v5.0")
+  price         Float    @default(2499)
+  currency      String   @default("USD")
+  period        String   @default("monthly")
+  maxVehicles   Int      @default(48)
+  aiOcrLimit    Int      @default(5000)
+  smsLimit      Int      @default(10000)
+  active        Boolean  @default(true)
+  startsAt      DateTime @default(now())
+  expiresAt     DateTime?
+  createdAt     DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model Invoice {
+  id         String   @id @default(uuid())
+  tenantId   String
+  date       DateTime @default(now())
+  amount     Float
+  status     String   @default("pending")
+  pdfUrl     String?
+  createdAt  DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model DriverAssignment {
+  id         String   @id @default(uuid())
+  tenantId   String
+  routeId    String?
+  driverId   String?
+  vehicleId  String
+  assignedBy String
+  confidence Float    @default(0.94)
+  reason     String?
+  assignedAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  route  Route? @relation(fields: [routeId], references: [id])
+  assigner User  @relation("assignedBy", fields: [assignedBy], references: [id])
+}
+
+model VehicleTag {
+  id        String @id @default(uuid())
+  vehicleId String
+  tag       String
+
+  vehicle Vehicle @relation(fields: [vehicleId], references: [id])
+}
+
+model Document {
+  id        String   @id @default(uuid())
+  tenantId  String
+  name      String
+  type      String   @default("pdf")
+  size      String
+  status    String   @default("processing")
+  pages     Int?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}

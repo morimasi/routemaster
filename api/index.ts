@@ -79,13 +79,13 @@ app.get('/api/v5/radar/positions', async (_req, res) => {
   try {
     if (DB_MODE) {
       const vehicles = await prisma.vehicle.findMany({
-        include: { position: true, driver: { select: { name: true } } },
+        include: { position: true, driver: { select: { name: true } }, routes: { select: { name: true }, take: 1 } },
       });
       res.json(vehicles.map(v => ({
         id: v.id, plate: v.plate,
         lat: v.position?.lat ?? 41.092, lng: v.position?.lng ?? 29.088,
         speed: v.position?.speed ?? 0, driver: v.driver?.name ?? 'Atanmamış', status: v.status,
-        route: v.routes?.[0]?.name ?? 'Rota yok',
+        route: v.routes[0]?.name ?? 'Rota yok',
       })));
     } else res.json(vehiclePositions);
   } catch { res.json(vehiclePositions); }
@@ -367,7 +367,7 @@ async function start() {
   });
 }
 
-start();
+if (!process.env.VERCEL) start();
 
 process.on('SIGTERM', () => { stopSimulation(); server.close(); });
 process.on('SIGINT', () => { stopSimulation(); server.close(); });

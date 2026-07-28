@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { prisma, connectDB } from './src/db.js';
 import { setupWebSocket, broadcastVehiclePosition } from './src/ws.js';
-import { startSimulation, stopSimulation } from './src/simulation.js';
+import { startSimulation, stopSimulation, runSimulationTick } from './src/simulation.js';
 import {
   dashboardStats, trafficData, systemLogs, aiPredictions, systemHealth,
   vehiclePositions, fleet, fleetVehicles, drivers,
@@ -78,6 +78,7 @@ function authMiddleware(req: express.Request, res: express.Response, next: expre
 app.get('/api/v5/radar/positions', async (_req, res) => {
   try {
     if (DB_MODE) {
+      if (process.env.VERCEL) await runSimulationTick();
       const vehicles = await prisma.vehicle.findMany({
         include: { position: true, driver: { select: { name: true } }, routes: { select: { name: true }, take: 1 } },
       });
@@ -222,9 +223,17 @@ app.get('/api/v5/parent/route', async (req, res) => {
 });
 
 app.get('/api/v5/parent/vehicle-position', async (req, res) => {
-  const vehicleId = req.query.vehicle_id as string;
-  const v = fleetVehicles.find(v => v.id === vehicleId);
-  res.json(v ? { lat: v.position.lat, lng: v.position.lng, speed: v.telemetry.speed, heading: v.position.heading, timestamp: Date.now() } : null);
+  const { vehicle_id } = req.query;
+  try {
+    if (DB_MODE) {
+      if (process.env.VERCEL) await runSimulationTick();
+      const pos = await prisma.position.findUnique({ where: { vehicleId: vehicle_id as string } });
+      res.json(pos ? { lat: pos.lat, lng: pos.lng, speed: pos.speed, heading: pos.heading, timestamp: pos.timestamp.getTime() } : null);
+    } else {
+      const v = fleetVehicles.find(v => v.id === vehicle_id);
+      res.json(v ? { lat: v.position.lat, lng: v.position.lng, speed: v.telemetry.speed, heading: v.position.heading, timestamp: Date.now() } : null);
+    }
+  } catch { res.json(null); }
 });
 
 app.post('/api/v5/parent/flag-absence', (req, res) => {

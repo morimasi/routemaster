@@ -1,7 +1,7 @@
 import React from 'react';
-import { 
-  LayoutDashboard, Map, Users, Settings, CreditCard, 
-  Sparkles, FileText
+import {
+  LayoutDashboard, Map, Users, Settings, CreditCard,
+  Sparkles, FileText, Navigation, Route, UserCheck
 } from 'lucide-react';
 
 interface NavItem {
@@ -14,6 +14,9 @@ const navItems: NavItem[] = [
   { id: 'dashboard', label: 'Özet', icon: <LayoutDashboard className="w-5 h-5" /> },
   { id: 'radar', label: 'Radar', icon: <Map className="w-5 h-5" /> },
   { id: 'fleet', label: 'Filo', icon: <Users className="w-5 h-5" /> },
+  { id: 'fleet-tracking', label: 'Takip', icon: <Navigation className="w-5 h-5" /> },
+  { id: 'route-optimization', label: 'Rota', icon: <Route className="w-5 h-5" /> },
+  { id: 'driver-assignment', label: 'Atama', icon: <UserCheck className="w-5 h-5" /> },
   { id: 'settings', label: 'Ayarlar', icon: <Settings className="w-5 h-5" /> },
   { id: 'billing', label: 'Fatura', icon: <CreditCard className="w-5 h-5" /> },
 ];

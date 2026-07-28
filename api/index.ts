@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import {
   dashboardStats, trafficData, systemLogs, aiPredictions, systemHealth,
-  vehiclePositions, fleet, drivers,
+  vehiclePositions, fleet, fleetVehicles, drivers,
   subscriptionPlan, usageMetrics, invoices, paymentMethod,
   documents, institutionProfile, securityConfig, webhookConfig,
 } from './src/data.js';
@@ -64,6 +64,11 @@ app.post('/api/v5/routes/generate-from-nodes', (req, res) => {
 // ── Fleet ────────────────────────────────────────────────────
 app.get('/api/v5/fleet', (_req, res) => res.json(fleet));
 app.get('/api/v5/fleet/drivers', (_req, res) => res.json(drivers));
+
+app.post('/api/v5/fleet/vehicles', (req, res) => {
+  const tenant_id = req.body?.tenant_id || 't-1001';
+  res.json({ tenant_id, vehicles: fleetVehicles, total: fleetVehicles.length });
+});
 
 app.post('/api/v5/fleet/vehicle', (req, res) => {
   const { plate, model, driver, phone } = req.body;

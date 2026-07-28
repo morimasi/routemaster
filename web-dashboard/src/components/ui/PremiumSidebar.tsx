@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { 
-  LayoutDashboard, Map, Users, Settings, CreditCard, CarFront, LogOut 
+import {
+  LayoutDashboard, Map, Users, Settings, CreditCard, CarFront, LogOut, Navigation, Route, UserCheck
 } from 'lucide-react';
 
 interface SidebarItemProps {
@@ -52,6 +52,9 @@ export const PremiumSidebar: React.FC<PremiumSidebarProps> = ({ activeTab, onTab
           <SidebarItem icon={<LayoutDashboard />} label="Sistem Özeti" isActive={activeTab === 'dashboard'} onClick={() => onTabChange('dashboard')} />
           <SidebarItem icon={<Map />} label="Canlı Radar" isActive={activeTab === 'radar'} onClick={() => onTabChange('radar')} />
           <SidebarItem icon={<Users />} label="Filo & Şoförler" isActive={activeTab === 'fleet'} onClick={() => onTabChange('fleet')} />
+          <SidebarItem icon={<Navigation />} label="Filo Takip" isActive={activeTab === 'fleet-tracking'} onClick={() => onTabChange('fleet-tracking')} />
+          <SidebarItem icon={<Route />} label="Rota Optimizasyonu" isActive={activeTab === 'route-optimization'} onClick={() => onTabChange('route-optimization')} />
+          <SidebarItem icon={<UserCheck />} label="Sürücü Atama" isActive={activeTab === 'driver-assignment'} onClick={() => onTabChange('driver-assignment')} />
           <SidebarItem icon={<Settings />} label="Kurum Ayarları" isActive={activeTab === 'settings'} onClick={() => onTabChange('settings')} />
           <SidebarItem icon={<CreditCard />} label="Abonelik & Fatura" isActive={activeTab === 'billing'} onClick={() => onTabChange('billing')} />
         </nav>

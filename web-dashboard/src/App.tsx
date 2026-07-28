@@ -7,6 +7,9 @@ import { MobileNav } from './components/ui/MobileNav';
 import { DashboardModule } from './modules/dashboard';
 import { RadarModule } from './modules/radar';
 import { FleetModule } from './modules/fleet';
+import { FleetTrackingModule } from './modules/fleet-tracking';
+import { RouteOptimizationModule } from './modules/route-optimization';
+import { DriverAssignmentModule } from './modules/driver-assignment';
 import { SettingsModule } from './modules/settings';
 import { BillingModule } from './modules/billing';
 import { PhotoRouteModule } from './modules/photo-route';
@@ -20,7 +23,7 @@ import { useWindowSize } from './hooks/useWindowSize';
 import { useSwipe } from './hooks/useSwipe';
 import type { Route, DocumentAINode } from './types';
 
-type TabId = 'dashboard' | 'radar' | 'fleet' | 'settings' | 'billing';
+type TabId = 'dashboard' | 'radar' | 'fleet' | 'fleet-tracking' | 'route-optimization' | 'driver-assignment' | 'settings' | 'billing';
 
 function App() {
   const { isMobile, isTablet } = useWindowSize();
@@ -47,7 +50,7 @@ function App() {
     setActiveTab('radar');
   }, []);
 
-  const tabIds: TabId[] = ['dashboard', 'radar', 'fleet', 'settings', 'billing'];
+  const tabIds: TabId[] = ['dashboard', 'radar', 'fleet', 'fleet-tracking', 'route-optimization', 'driver-assignment', 'settings', 'billing'];
   const currentTabIndex = tabIds.indexOf(activeTab);
 
   const nextTab = useCallback(() => {
@@ -91,6 +94,9 @@ function App() {
       case 'dashboard': return <DashboardModule />;
       case 'radar': return <RadarModule routes={radarRoutes} />;
       case 'fleet': return <FleetModule />;
+      case 'fleet-tracking': return <FleetTrackingModule />;
+      case 'route-optimization': return <RouteOptimizationModule />;
+      case 'driver-assignment': return <DriverAssignmentModule />;
       case 'settings': return <SettingsModule />;
       case 'billing': return <BillingModule />;
     }
@@ -158,7 +164,7 @@ function App() {
                 <div className="flex gap-1 bg-slate-900/80 p-0.5 sm:p-1 rounded-lg sm:rounded-xl border border-slate-800 text-[8px] sm:text-xs font-bold flex-shrink-0">
                   {tabIds.map((tab) => (
                     <button key={tab} onClick={() => setActiveTab(tab)} className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg transition-colors whitespace-nowrap ${activeTab === tab ? 'bg-blue-600 text-white' : 'text-slate-400'}`}>
-                      {tab === 'dashboard' ? 'Özet' : tab === 'radar' ? 'Radar' : tab === 'fleet' ? 'Filo' : tab === 'settings' ? 'Ayarlar' : 'Fatura'}
+                      {tab === 'dashboard' ? 'Özet' : tab === 'radar' ? 'Radar' : tab === 'fleet' ? 'Filo' : tab === 'fleet-tracking' ? 'Takip' : tab === 'route-optimization' ? 'Rota Opt' : tab === 'driver-assignment' ? 'Atama' : tab === 'settings' ? 'Ayarlar' : 'Fatura'}
                     </button>
                   ))}
                 </div>

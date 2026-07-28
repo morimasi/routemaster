@@ -1,6 +1,6 @@
 import type { FleetVehicle, FleetStats, FleetGroup, GeoPoint } from './types';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
 const MOCK_VEHICLES: FleetVehicle[] = [
   {
@@ -131,14 +131,24 @@ export class FleetTrackingService {
   static getGroups(): FleetGroup[] { return MOCK_GROUPS; }
   static getVehicle(id: string): FleetVehicle | undefined { return this.vehicles.find(v => v.id === id); }
 
-  static async fetchVehicles(tenantId: string): Promise<FleetVehicle[]> {
+  static async fetchVehicles(tenantId: string = 't-1001'): Promise<FleetVehicle[]> {
     try {
       const res = await fetch(`${API_BASE}/api/v5/fleet/vehicles`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tenant_id: tenantId }),
       });
-      if (res.ok) { const data = await res.json(); if (data?.vehicles) { this.vehicles = data.vehicles; } }
-    } catch { /* use mock */ }
+      if (res.ok) {
+        const data = await res.json();
+        if (data?.vehicles?.length) {
+          this.vehicles = data.vehicles.map((v: FleetVehicle) => ({
+            ...v, trail: [],
+            alerts: v.alerts?.map((a: any) => ({ ...a })) || [],
+            lastUpdated: Date.now(),
+          }));
+          return this.getVehicles();
+        }
+      }
+    } catch { /* API unavailable, use mock */ }
     return this.getVehicles();
   }
 
@@ -156,10 +166,15 @@ export class FleetTrackingService {
   static enableTrails(enabled: boolean) { this.trailEnabled = enabled; }
   static getTrailEnabled() { return this.trailEnabled; }
 
-  static acknowledgeAlert(vehicleId: string, alertId: string, by: string) {
+  static acknowledgeAlert(vehicleId: string, alertId: string, by = 'system') {
     const vehicle = this.vehicles.find(v => v.id === vehicleId);
     const alert = vehicle?.alerts.find(a => a.id === alertId);
     if (alert) { alert.acknowledged = true; alert.acknowledgedBy = by; alert.acknowledgedAt = Date.now(); }
+  }
+
+  static cleanup() {
+    if (this.timer) { clearInterval(this.timer); this.timer = null; }
+    this.callbacks.clear();
   }
 
   private static simulateMovement() {

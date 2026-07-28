@@ -112,14 +112,16 @@ export const RadarModule: React.FC<RadarModuleProps> = ({ routes: externalRoutes
     if (mapInitialized.current) return;
     mapInitialized.current = true;
     const gm = window.google.maps;
-    mapInstance.current = new gm.Map(mapRef.current, {
+    const mapOptions: google.maps.MapOptions = {
       center: { lat: 41.092, lng: 29.088 },
       zoom: 13,
       mapId: GOOGLE_MAP_ID || undefined,
       disableDefaultUI: true,
       gestureHandling: 'greedy',
       backgroundColor: '#0f172a',
-      styles: [
+    };
+    if (!GOOGLE_MAP_ID) {
+      mapOptions.styles = [
         { elementType: 'geometry', stylers: [{ color: '#0f172a' }] },
         { elementType: 'labels.text.fill', stylers: [{ color: '#64748b' }] },
         { elementType: 'labels.text.stroke', stylers: [{ color: '#0f172a' }] },
@@ -128,8 +130,9 @@ export const RadarModule: React.FC<RadarModuleProps> = ({ routes: externalRoutes
         { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#1e3a5f' }] },
         { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#0c4a6e' }] },
         { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#1e293b' }] },
-      ],
-    });
+      ];
+    }
+    mapInstance.current = new gm.Map(mapRef.current, mapOptions);
 
     routeLineRef.current = new gm.Polyline({
       path: [

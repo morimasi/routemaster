@@ -101,12 +101,15 @@ export const GoogleNavigationModule: React.FC = () => {
     if (!mapsReady || !mapRef.current || mapInitDone.current) return;
     mapInitDone.current = true;
     const gm = window.google.maps;
-    mapInstance.current = new gm.Map(mapRef.current, {
+    const mapOptions: google.maps.MapOptions = {
       center: { lat: 41.088, lng: 29.088 }, zoom: 14,
       mapId: GOOGLE_MAP_ID || undefined,
       disableDefaultUI: true, gestureHandling: 'greedy', backgroundColor: '#0f172a',
-      styles: MAP_STYLES,
-    });
+    };
+    if (!GOOGLE_MAP_ID) {
+      mapOptions.styles = MAP_STYLES;
+    }
+    mapInstance.current = new gm.Map(mapRef.current, mapOptions);
     rendererRef.current = new gm.DirectionsRenderer({
       map: mapInstance.current,
       polylineOptions: { strokeColor: '#3b82f6', strokeWeight: 5, strokeOpacity: 0.9 },

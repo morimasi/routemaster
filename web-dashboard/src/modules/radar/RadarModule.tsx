@@ -106,8 +106,9 @@ export const RadarModule: React.FC<RadarModuleProps> = ({ routes: externalRoutes
     const mapOptions: google.maps.MapOptions = {
       center: { lat: 41.092, lng: 29.088 },
       zoom: 13,
-      mapId: GOOGLE_MAP_ID || undefined,
+      mapId: GOOGLE_MAP_ID || 'DEMO_MAP_ID', // Demo ID fallback hataları azaltır
       mapTypeId: 'roadmap',
+      renderingType: window.google.maps.RenderingType.RASTER, // Raster'ı önceliklendirerek hatayı engeller
       disableDefaultUI: true,
       gestureHandling: 'greedy',
       backgroundColor: '#0f172a',

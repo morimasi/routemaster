@@ -180,7 +180,8 @@ export const ParentModule: React.FC = () => {
     if (!mapInstance.current) {
       mapInstance.current = new google.maps.Map(mapRef.current, {
         center: { lat: vehicleInfo.lat, lng: vehicleInfo.lng },
-        zoom: 14, mapId: import.meta.env.VITE_GOOGLE_MAP_ID || undefined,
+        zoom: 14, mapId: import.meta.env.VITE_GOOGLE_MAP_ID || 'DEMO_MAP_ID',
+        renderingType: google.maps.RenderingType.RASTER,
         disableDefaultUI: true, gestureHandling: 'greedy', backgroundColor: '#0f172a',
       });
     }

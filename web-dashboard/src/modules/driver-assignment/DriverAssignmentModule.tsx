@@ -23,8 +23,8 @@ export const DriverAssignmentModule: React.FC = () => {
       DriverAssignmentApiService.getVehicles('t-1001'),
       DriverAssignmentApiService.getDrivers('t-1001'),
     ]).then(([v, d]) => {
-      setVehicles(v as Vehicle[]);
-      setDrivers(d as Driver[]);
+      setVehicles(Array.isArray(v) ? v as Vehicle[] : []);
+      setDrivers(Array.isArray(d) ? d as Driver[] : []);
       setLoading(false);
     });
   }, []);
@@ -40,7 +40,7 @@ export const DriverAssignmentModule: React.FC = () => {
   }, []);
 
   const bestDriver = (): Driver | null => {
-    if (drivers.length === 0) return null;
+    if (!Array.isArray(drivers) || drivers.length === 0) return null;
     return drivers.filter(d => d.status === 'ACTIVE').sort((a, b) => b.rating - a.rating)[0] || null;
   };
 
@@ -174,8 +174,8 @@ export const DriverAssignmentModule: React.FC = () => {
                 <p className="text-xs text-slate-500">Henüz atama yapılmadı</p>
               </div>
             ) : assignedResults.map(([vehicleId, result]) => {
-              const v = vehicles.find(v => v.id === vehicleId);
-              const d = drivers.find(d => d.id === result.driver_id);
+              const v = (Array.isArray(vehicles) ? vehicles : []).find(v => v.id === vehicleId);
+              const d = (Array.isArray(drivers) ? drivers : []).find(d => d.id === result.driver_id);
               return (
                 <div key={vehicleId} className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-3 flex items-center justify-between">
                   <div className="flex items-center gap-2">

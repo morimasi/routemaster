@@ -2,11 +2,10 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   CarFront, ChevronRight, AlertTriangle, Cpu, CheckCircle2, X,
-  Navigation, Clock, User, ZoomIn, ZoomOut, RotateCcw, Radio, MapIcon, Loader,
-  Plus, Trash2, Edit3, Save, Phone, Star, Fuel, Gauge, Route, MapPin,
-  Layers, BarChart3, Search, Filter, ArrowUpRight, Bell, Settings,
-  Play, Pause, UserPlus, Truck, Wifi, WifiOff, Circle, CircleDot,
-  RefreshCw, Download, Share2, Maximize2, Minimize2
+  Navigation, User, ZoomIn, ZoomOut, RotateCcw, Radio, MapIcon, Loader,
+  Plus, Trash2, Edit3, Phone, Star, Gauge, Route, MapPin,
+  Search, Truck, Circle,
+  Maximize2, Minimize2
 } from 'lucide-react';
 import { useWindowSize } from '../../hooks/useWindowSize';
 import { RadarApiService } from './api';
@@ -38,12 +37,6 @@ function loadGoogleMaps(): Promise<void> {
     s.onerror = () => reject(new Error('Google Maps yüklenemedi'));
     document.head.appendChild(s);
   });
-}
-
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600);
-  const m = Math.floor((seconds % 3600) / 60);
-  return h > 0 ? `${h}s ${m}dk` : `${m}dk`;
 }
 
 function statusColor(status: string): string {
@@ -110,15 +103,11 @@ export const RadarModule: React.FC<RadarModuleProps> = ({ routes: externalRoutes
   const [newRouteType, setNewRouteType] = useState('MORNING');
   const [newRouteVehicleId, setNewRouteVehicleId] = useState('');
   const [showRouteStops, setShowRouteStops] = useState(false);
-  const [selectedRouteStops, setSelectedRouteStops] = useState<RouteStop[]>([]);
   const [selectedVehDetail, setSelectedVehDetail] = useState<VehicleDetail | null>(null);
 
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstance = useRef<google.maps.Map | null>(null);
   const markersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map());
-  const stopMarkersRef = useRef<Map<string, google.maps.marker.AdvancedMarkerElement>>(new Map());
-  const routeLineRef = useRef<google.maps.Polyline | null>(null);
-  const routePathRef = useRef<google.maps.Polyline | null>(null);
   const mapInitialized = useRef(false);
   const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
 
@@ -573,7 +562,7 @@ export const RadarModule: React.FC<RadarModuleProps> = ({ routes: externalRoutes
                         <span className="text-[8px] text-slate-500">{selectedRouteDetail.nodes.filter(n => n.status === 'PASSED').length}/{selectedRouteDetail.nodes.length}</span>
                       </div>
                       <div className="max-h-[150px] overflow-y-auto space-y-0.5">
-                        {selectedRouteDetail.nodes.map((node, idx) => (
+                        {selectedRouteDetail.nodes.map((node) => (
                           <div key={node.id} className={`flex items-center gap-2 p-1.5 rounded-lg text-[8px] sm:text-[10px] ${node.status === 'CURRENT' ? 'bg-blue-900/30 border border-blue-500/30' : node.status === 'PASSED' ? 'bg-emerald-900/20' : 'bg-transparent'}`}>
                             <div className={`w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 text-[7px] font-bold ${node.status === 'PASSED' ? 'bg-emerald-500/30 text-emerald-400' : node.status === 'CURRENT' ? 'bg-blue-500/30 text-blue-400' : 'bg-slate-700 text-slate-400'}`}>
                               {node.seq}

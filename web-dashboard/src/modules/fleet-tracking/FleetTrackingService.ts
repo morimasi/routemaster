@@ -175,6 +175,7 @@ export class FleetTrackingService {
 
   private static connectWebSocket() {
     if (this.ws?.readyState === WebSocket.OPEN) return;
+    if (import.meta.env.PROD) return; // WS unsupported on Vercel free tier
     try {
       const wsUrl = API_BASE.replace(/^http/, 'ws');
       this.ws = new WebSocket(`${wsUrl}/?tenant=t-1001`);

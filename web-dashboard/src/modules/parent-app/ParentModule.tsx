@@ -70,6 +70,7 @@ export const ParentModule: React.FC = () => {
     };
 
     function connect() {
+      if (import.meta.env.PROD) { setUsePolling(true); return; }
       try {
         ws = new WebSocket(`${wsUrl}/ws`);
         const failTimeout = setTimeout(() => {
@@ -181,7 +182,6 @@ export const ParentModule: React.FC = () => {
       mapInstance.current = new google.maps.Map(mapRef.current, {
         center: { lat: vehicleInfo.lat, lng: vehicleInfo.lng },
         zoom: 14, mapId: import.meta.env.VITE_GOOGLE_MAP_ID || 'DEMO_MAP_ID',
-        renderingType: google.maps.RenderingType.RASTER,
         disableDefaultUI: true, gestureHandling: 'greedy', backgroundColor: '#0f172a',
       });
     }

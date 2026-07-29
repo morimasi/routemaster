@@ -151,7 +151,6 @@ export const RadarModule: React.FC<RadarModuleProps> = ({ routes: externalRoutes
       zoom: 13,
       mapId: GOOGLE_MAP_ID || 'DEMO_MAP_ID',
       mapTypeId: 'roadmap',
-      renderingType: gm.RenderingType.RASTER,
       disableDefaultUI: true,
       gestureHandling: 'greedy',
       backgroundColor: '#0f172a',

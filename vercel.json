@@ -4,7 +4,6 @@
   "outputDirectory": "web-dashboard/dist",
   "installCommand": "cd web-dashboard && npm install && cd ../api && npm install",
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/index.ts" },
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
   ]
 }

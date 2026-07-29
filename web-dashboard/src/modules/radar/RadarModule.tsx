@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { useWindowSize } from '../../hooks/useWindowSize';
 import { RadarApiService } from './api';
-import type { VehiclePosition, RadarRoute, FleetSummary, VehicleDetail, RouteStop } from './types';
+import type { VehiclePosition, RadarRoute, FleetSummary, VehicleDetail } from './types';
 
 interface RadarModuleProps {
   routes: RadarRoute[];

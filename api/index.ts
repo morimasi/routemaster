@@ -185,6 +185,182 @@ app.post('/api/v5/fleet/ai-assign', (_req, res) => {
   res.json({ status: 'ASSIGNED', driver_id: `d_ai_${Date.now()}`, confidence: 0.94, reason: 'Optimum sürücü-rota eşleşmesi' });
 });
 
+// ── Routes ────────────────────────────────────────────────────
+app.get('/api/v5/routes/detail/:routeId', async (req, res) => {
+  try {
+    if (DB_MODE) {
+      const route = await prisma.route.findUnique({
+        where: { id: req.params.routeId },
+        include: { vehicle: { include: { position: true, driver: true } }, driver: true, nodes: { orderBy: { seq: 'asc' } } },
+      });
+      if (!route) { res.status(404).json({ error: 'Route not found' }); return; }
+      res.json({
+        id: route.id, name: route.name, type: route.type, status: route.status,
+        progressPercent: route.progressPercent, totalDistance: route.totalDistance, totalDuration: route.totalDuration,
+        scheduledAt: route.scheduledAt, startedAt: route.startedAt, completedAt: route.completedAt,
+        vehicle: route.vehicle ? {
+          id: route.vehicle.id, plate: route.vehicle.plate, brand: route.vehicle.brand, model: route.vehicle.model,
+          status: route.vehicle.status,
+          position: route.vehicle.position ? { lat: route.vehicle.position.lat, lng: route.vehicle.position.lng, speed: route.vehicle.position.speed, heading: route.vehicle.position.heading, timestamp: route.vehicle.position.timestamp.getTime() } : null,
+        } : null,
+        driver: route.driver ? { id: route.driver.id, name: route.driver.name, phone: route.driver.phone, photo: route.driver.photo, rating: route.driver.rating, status: route.driver.status } : null,
+        nodes: route.nodes.map(n => ({
+          id: n.id, seq: n.seq, studentName: n.studentName, address: n.address, lat: n.lat, lng: n.lng,
+          status: n.status, absenceFlagged: n.absenceFlagged, estimatedTime: n.estimatedTime, actualTime: n.actualTime,
+        })),
+      });
+    } else {
+      res.json({
+        id: req.params.routeId, name: 'Sabah Bandı - Kavacık', type: 'morning', status: 'ACTIVE', progressPercent: 65,
+        totalDistance: 24.5, totalDuration: 45, scheduledAt: new Date().toISOString(), startedAt: new Date().toISOString(), completedAt: null,
+        vehicle: { id: 'v1', plate: '34 AB 1234', brand: 'Mercedes-Benz', model: 'Sprinter 519', status: 'ACTIVE', position: { lat: 41.095, lng: 29.098, speed: 45, heading: 180, timestamp: Date.now() } },
+        driver: { id: 'd1', name: 'Mehmet Şahin', phone: '0532 111 2233', photo: null, rating: 4.9, status: 'ACTIVE' },
+        nodes: [
+          { id: 'n1', seq: 1, studentName: 'Eymen Altunel', address: 'Cumhuriyet Mah. 4. Sok No:12', lat: 41.095, lng: 29.098, status: 'BOARDED', absenceFlagged: false, estimatedTime: '08:15', actualTime: '08:12' },
+          { id: 'n2', seq: 2, studentName: 'Zeynep Kaya', address: 'Gül Apt. D:8, Anadolu Hisarı', lat: 41.086, lng: 29.083, status: 'PENDING', absenceFlagged: false, estimatedTime: '08:25', actualTime: null },
+        ],
+      });
+    }
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/v5/routes/update', async (req, res) => {
+  try {
+    if (DB_MODE) {
+      const { id, name, status, progressPercent, type, totalDistance, totalDuration } = req.body;
+      const route = await prisma.route.update({
+        where: { id },
+        data: { name, status, progressPercent, type, totalDistance, totalDuration },
+      });
+      res.json({ status: 'UPDATED', route });
+    } else {
+      res.json({ status: 'UPDATED', route: { id: req.body.id || 'r1', ...req.body } });
+    }
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/v5/routes/assign-vehicle', async (req, res) => {
+  try {
+    if (DB_MODE) {
+      const { routeId, vehicleId } = req.body;
+      await prisma.route.update({ where: { id: routeId }, data: { vehicleId } });
+      res.json({ status: 'ASSIGNED', route_id: routeId, vehicle_id: vehicleId });
+    } else {
+      res.json({ status: 'ASSIGNED', route_id: req.body.routeId, vehicle_id: req.body.vehicleId });
+    }
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/v5/routes/assign-driver', async (req, res) => {
+  try {
+    if (DB_MODE) {
+      const { vehicleId, driverId } = req.body;
+      await prisma.vehicle.update({ where: { id: vehicleId }, data: { driverId } });
+      res.json({ status: 'ASSIGNED', vehicle_id: vehicleId, driver_id: driverId });
+    } else {
+      res.json({ status: 'ASSIGNED', vehicle_id: req.body.vehicleId, driver_id: req.body.driverId });
+    }
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/v5/services/create', async (req, res) => {
+  try {
+    if (DB_MODE) {
+      const { name, type, vehicleId, driverId, nodes } = req.body;
+      const route = await prisma.route.create({
+        data: {
+          tenantId: req.user?.tenantId || 't-1001',
+          name: name || 'Yeni Rota',
+          type: type || 'morning',
+          vehicleId,
+          driverId,
+          nodes: nodes ? { create: nodes.map((n: any, i: number) => ({
+            studentName: n.studentName || 'Öğrenci', address: n.address, lat: n.lat, lng: n.lng, seq: n.seq ?? i + 1,
+          })) } : undefined,
+        },
+        include: { nodes: { orderBy: { seq: 'asc' } } },
+      });
+      res.json({ status: 'CREATED', route_id: route.id, route });
+    } else {
+      const routeId = `r_${Date.now()}`;
+      res.json({
+        status: 'CREATED', route_id: routeId,
+        route: { id: routeId, name: req.body.name || 'Yeni Rota', type: req.body.type || 'morning', status: 'SCHEDULED', nodes: (req.body.nodes || []).map((n: any, i: number) => ({ ...n, id: `n_${Date.now()}_${i}`, seq: n.seq ?? i + 1, status: 'PENDING' })) },
+      });
+    }
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.delete('/api/v5/routes/:routeId', async (req, res) => {
+  try {
+    if (DB_MODE) {
+      await prisma.routeNode.deleteMany({ where: { routeId: req.params.routeId } });
+      await prisma.route.delete({ where: { id: req.params.routeId } });
+      res.json({ status: 'DELETED', route_id: req.params.routeId });
+    } else {
+      res.json({ status: 'DELETED', route_id: req.params.routeId });
+    }
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Fleet Extended ────────────────────────────────────────────
+app.get('/api/v5/fleet/vehicle/:vehicleId', async (req, res) => {
+  try {
+    if (DB_MODE) {
+      const v = await prisma.vehicle.findUnique({
+        where: { id: req.params.vehicleId },
+        include: { driver: true, position: true, tags: true, routes: { take: 1 } },
+      });
+      if (!v) { res.status(404).json({ error: 'Vehicle not found' }); return; }
+      res.json({
+        id: v.id, plate: v.plate, vin: v.vin, brand: v.brand, model: v.model, year: v.year,
+        color: v.color, fuelType: v.fuelType, capacity: v.capacity, status: v.status,
+        position: v.position ? { lat: v.position.lat, lng: v.position.lng, speed: v.position.speed, heading: v.position.heading, accuracy: v.position.accuracy, timestamp: v.position.timestamp.getTime() } : null,
+        driver: v.driver ? { id: v.driver.id, name: v.driver.name, phone: v.driver.phone, email: v.driver.email, rating: v.driver.rating, totalTrips: v.driver.totalTrips, status: v.driver.status } : null,
+        tags: v.tags.map(t => t.tag),
+        route: v.routes[0] ? { id: v.routes[0].id, name: v.routes[0].name, status: v.routes[0].status } : null,
+      });
+    } else {
+      const v = fleetVehicles.find(fv => fv.id === req.params.vehicleId);
+      if (v) res.json(v);
+      else res.status(404).json({ error: 'Vehicle not found' });
+    }
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/v5/fleet/summary', async (_req, res) => {
+  try {
+    if (DB_MODE) {
+      const [totalVehicles, activeVehicles, warningVehicles, standbyVehicles, driversCount] = await Promise.all([
+        prisma.vehicle.count(),
+        prisma.vehicle.count({ where: { status: 'ACTIVE' } }),
+        prisma.vehicle.count({ where: { status: 'WARNING' } }),
+        prisma.vehicle.count({ where: { status: 'STANDBY' } }),
+        prisma.driver.count(),
+      ]);
+      res.json({ totalVehicles, activeVehicles, warningVehicles, standbyVehicles, driversCount });
+    } else {
+      res.json({ totalVehicles: 24, activeVehicles: 18, warningVehicles: 3, standbyVehicles: 3, driversCount: 22 });
+    }
+  } catch (e: any) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── Parent Module ─────────────────────────────────────────────
 app.get('/api/v5/parent/children', async (req, res) => {
   const tenantId = req.query.tenant_id as string || 't-1001';

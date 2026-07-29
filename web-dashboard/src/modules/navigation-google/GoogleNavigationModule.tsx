@@ -172,7 +172,7 @@ export const GoogleNavigationModule: React.FC = () => {
       waypoints: waypoints.slice(0, -1),
       travelMode: gm.TravelMode.DRIVING,
     }, (result, status) => {
-      if (status !== 'OK' || !result) return;
+      if (status !== 'OK' || !result || !result.routes?.length) return;
       rendererRef.current!.setDirections(result);
       const steps: Maneuver[] = [];
       result.routes[0].legs.forEach((leg, li) => {
@@ -243,7 +243,7 @@ export const GoogleNavigationModule: React.FC = () => {
 
   const stopNav = useCallback(() => {
     setIsNavigating(false); setStatus('idle');
-    rendererRef.current?.setDirections(null);
+    if (rendererRef.current) rendererRef.current.setMap(null);
   }, []);
 
   const centerOnUser = useCallback(() => {

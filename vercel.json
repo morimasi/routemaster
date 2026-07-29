@@ -1,9 +1,21 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd web-dashboard && npm run build",
-  "outputDirectory": "web-dashboard/dist",
   "installCommand": "cd web-dashboard && npm install && cd ../api && npm install",
-  "rewrites": [
-    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  "builds": [
+    {
+      "src": "web-dashboard/package.json",
+      "use": "@vercel/static-build",
+      "config": {
+        "distDir": "dist"
+      }
+    },
+    {
+      "src": "api/index.ts",
+      "use": "@vercel/node"
+    }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "api/index.ts" },
+    { "src": "/(.*)", "dest": "/web-dashboard/dist/index.html" }
   ]
 }

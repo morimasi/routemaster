@@ -181,9 +181,249 @@ app.post('/api/v5/fleet/vehicle', async (req, res) => {
   } catch { res.json({ status: 'CREATED', vehicle_id: `v_${Date.now()}` }); }
 });
 
-app.post('/api/v5/fleet/ai-assign', (_req, res) => {
-  res.json({ status: 'ASSIGNED', driver_id: `d_ai_${Date.now()}`, confidence: 0.94, reason: 'Optimum sürücü-rota eşleşmesi' });
+// ── Driver Assignment ─────────────────────────────────────────
+app.post('/api/v5/driver-assignment/assign', async (req, res) => {
+  try {
+    const { tenant_id, vehicle_id, driver_id, reason } = req.body;
+    if (DB_MODE) {
+      await prisma.vehicle.update({ where: { id: vehicle_id }, data: { driverId: driver_id } });
+      const assignment = await prisma.driverAssignment.create({
+        data: {
+          tenantId: tenant_id || 't-1001',
+          vehicleId: vehicle_id,
+          driverId: driver_id,
+          assignedBy: req.user?.userId || 'u-admin',
+          confidence: 0.95,
+          reason: reason || 'Manuel atama',
+        },
+      });
+      res.json({ status: 'ASSIGNED', driver_id, confidence: 0.95, reason: reason || 'Manuel atama', assigned_at: assignment.assignedAt.getTime() });
+    } else {
+      mockAssignmentsData.push({ id: `da_${Date.now()}`, tenant_id: tenant_id || 't-1001', vehicle_id, driver_id, assigned_by: 'u-admin', confidence: 0.95, reason: reason || 'Manuel atama', assigned_at: Date.now(), revoked_at: null });
+      res.json({ status: 'ASSIGNED', driver_id, confidence: 0.95, reason: reason || 'Manuel atama', assigned_at: Date.now() });
+    }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
+
+app.post('/api/v5/driver-assignment/ai-assign', async (req, res) => {
+  try {
+    const { tenant_id, vehicle_id } = req.body;
+    if (DB_MODE) {
+      const availDrivers = await prisma.driver.findMany({ where: { tenantId: tenant_id || 't-1001', status: 'ACTIVE', vehicles: { none: {} } } });
+      if (availDrivers.length === 0) { res.json({ status: 'NO_DRIVER', driver_id: '', confidence: 0, reason: 'Müsait sürücü bulunamadı' }); return; }
+      const best = availDrivers.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0];
+      await prisma.vehicle.update({ where: { id: vehicle_id }, data: { driverId: best.id } });
+      const assignment = await prisma.driverAssignment.create({
+        data: { tenantId: tenant_id || 't-1001', vehicleId: vehicle_id, driverId: best.id, assignedBy: req.user?.userId || 'u-admin', confidence: 0.94, reason: `AI optimizasyonu: ${best.name} en uygun sürücü` },
+      });
+      res.json({ status: 'ASSIGNED', driver_id: best.id, confidence: 0.94, reason: `AI optimizasyonu: ${best.name} en uygun sürücü`, assigned_at: assignment.assignedAt.getTime() });
+    } else {
+      const avail = mockDriverState.filter(d => d.status === 'ACTIVE' && !mockAssignedVehicleIds.has(d.id));
+      if (avail.length === 0) { res.json({ status: 'NO_DRIVER', driver_id: '', confidence: 0, reason: 'Müsait sürücü bulunamadı' }); return; }
+      const best = avail.sort((a, b) => b.rating - a.rating)[0];
+      mockAssignedVehicleIds.add(best.id);
+      mockAssignmentsData.push({ id: `da_${Date.now()}`, tenant_id: tenant_id || 't-1001', vehicle_id, driver_id: best.id, assigned_by: 'u-admin', confidence: 0.94, reason: `AI optimizasyonu: ${best.name} en uygun sürücü`, assigned_at: Date.now(), revoked_at: null });
+      res.json({ status: 'ASSIGNED', driver_id: best.id, confidence: 0.94, reason: `AI optimizasyonu: ${best.name} en uygun sürücü`, assigned_at: Date.now() });
+    }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/v5/driver-assignment/active', async (req, res) => {
+  const tenantId = req.query.tenant_id as string || 't-1001';
+  try {
+    if (DB_MODE) {
+      const vehicles = await prisma.vehicle.findMany({ where: { tenantId, driverId: { not: null } }, include: { driver: true } });
+      res.json(vehicles.map(v => ({
+        id: `da_${v.id}`, vehicleId: v.id, vehiclePlate: v.plate, vehicleBrand: v.brand ?? '', vehicleModel: v.model ?? '',
+        driverId: v.driver!.id, driverName: v.driver!.name, driverPhone: v.driver!.phone, driverRating: v.driver!.rating,
+        confidence: 0.95, reason: 'Aktif atama', assignedAt: v.updatedAt.getTime(), status: 'active',
+      })));
+    } else {
+      const active = mockAssignmentsData.filter(a => a.revoked_at === null);
+      res.json(active.map((a: any) => {
+        const v = mockFleetData.find(f => f.id === a.vehicle_id);
+        const d = mockDriverState.find(dd => dd.id === a.driver_id);
+        return {
+          id: a.id, vehicleId: a.vehicle_id, vehiclePlate: v?.plate || a.vehicle_id, vehicleBrand: v?.brand || '', vehicleModel: v?.model || '',
+          driverId: a.driver_id, driverName: d?.name || a.driver_id, driverPhone: d?.phone || '', driverRating: d?.rating || 0,
+          confidence: a.confidence, reason: a.reason, assignedAt: a.assigned_at, status: 'active',
+        };
+      }));
+    }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/v5/driver-assignment/history', async (req, res) => {
+  const tenantId = req.query.tenant_id as string || 't-1001';
+  const driverId = req.query.driver_id as string;
+  const vehicleId = req.query.vehicle_id as string;
+  try {
+    if (DB_MODE) {
+      const where: any = { tenantId };
+      if (driverId) where.driverId = driverId;
+      if (vehicleId) where.vehicleId = vehicleId;
+      const assignments = await prisma.driverAssignment.findMany({ where, orderBy: { assignedAt: 'desc' }, take: 100 });
+      res.json(assignments.map(a => ({
+        id: a.id, vehicleId: a.vehicleId, vehiclePlate: a.vehicleId, driverId: a.driverId, driverName: a.driverId,
+        confidence: a.confidence, reason: a.reason || '', assignedAt: a.assignedAt.getTime(), status: 'revoked',
+      })));
+    } else {
+      let filtered = [...mockAssignmentsData];
+      if (driverId) filtered = filtered.filter((a: any) => a.driver_id === driverId);
+      if (vehicleId) filtered = filtered.filter((a: any) => a.vehicle_id === vehicleId);
+      res.json(filtered
+        .sort((a: any, b: any) => b.assigned_at - a.assigned_at)
+        .map((a: any) => {
+          const v = mockFleetData.find(f => f.id === a.vehicle_id);
+          const d = mockDriverState.find(dd => dd.id === a.driver_id);
+          return {
+            id: a.id, vehicleId: a.vehicle_id, vehiclePlate: v?.plate || a.vehicle_id, driverId: a.driver_id, driverName: d?.name || a.driver_id,
+            confidence: a.confidence, reason: a.reason, assignedAt: a.assigned_at, revokedAt: a.revoked_at, status: a.revoked_at ? 'revoked' : 'active',
+          };
+        }));
+    }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/v5/driver-assignment/revoke', async (req, res) => {
+  try {
+    const { tenant_id, assignment_id, vehicle_id } = req.body;
+    if (DB_MODE) {
+      if (vehicle_id) await prisma.vehicle.update({ where: { id: vehicle_id }, data: { driverId: null } });
+      if (assignment_id) await prisma.driverAssignment.update({ where: { id: assignment_id }, data: {} });
+      res.json({ status: 'REVOKED' });
+    } else {
+      const idx = mockAssignmentsData.findIndex((a: any) => a.id === assignment_id || a.vehicle_id === vehicle_id);
+      if (idx !== -1) mockAssignmentsData[idx].revoked_at = Date.now();
+      res.json({ status: 'REVOKED' });
+    }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/v5/fleet/vehicles/unassigned', async (req, res) => {
+  const tenantId = req.query.tenant_id as string || 't-1001';
+  try {
+    if (DB_MODE) {
+      const vehicles = await prisma.vehicle.findMany({ where: { tenantId, driverId: null } });
+      res.json(vehicles.map(v => ({ id: v.id, plate: v.plate, brand: v.brand, model: v.model, year: v.year, capacity: v.capacity, status: v.status })));
+    } else {
+      res.json(mockFleetData.filter(v => v.status === 'STANDBY' || v.status === 'IDLE' || v.status === 'BREAK' || v.status === 'OFFLINE'));
+    }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/v5/fleet/drivers/available', async (req, res) => {
+  const tenantId = req.query.tenant_id as string || 't-1001';
+  try {
+    if (DB_MODE) {
+      const d = await prisma.driver.findMany({ where: { tenantId, status: 'ACTIVE' } });
+      res.json(d.map(dd => ({ id: dd.id, name: dd.name, phone: dd.phone, email: dd.email, licenseNumber: dd.licenseNumber, rating: dd.rating, totalTrips: dd.totalTrips, totalHours: dd.totalHours, status: dd.status })));
+    } else {
+      res.json(mockDriverState.filter(d => d.status === 'ACTIVE'));
+    }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.put('/api/v5/fleet/drivers/:driverId/status', async (req, res) => {
+  try {
+    const { driverId } = req.params;
+    const { status } = req.body;
+    if (DB_MODE) {
+      await prisma.driver.update({ where: { id: driverId }, data: { status } });
+    } else {
+      const d = mockDriverState.find(dd => dd.id === driverId);
+      if (d) d.status = status;
+    }
+    res.json({ status: 'UPDATED' });
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/v5/driver-assignment/suggest', async (req, res) => {
+  const tenantId = req.query.tenant_id as string || 't-1001';
+  try {
+    if (DB_MODE) {
+      const availDrivers = await prisma.driver.findMany({ where: { tenantId, status: 'ACTIVE' } });
+      res.json(availDrivers.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0)).map((d, i) => ({
+        driverId: d.id, driverName: d.name, driverRating: d.rating, driverTotalTrips: d.totalTrips, driverStatus: d.status,
+        confidence: Math.round((d.rating * 0.2 + 0.1 * Math.max(0, 5 - i)) * 100) / 100,
+        reason: ['En yüksek puan ve deneyim', 'Optimum bölge eşleşmesi', 'Dengeli iş yükü dağılımı', 'Müsait sürücü', 'Alternatif sürücü'][i] || 'Müsait sürücü',
+        score: Math.round(d.rating * 20 + d.totalTrips / 100 - i * 5),
+      })));
+    } else {
+      res.json(mockDriverState.filter(d => d.status === 'ACTIVE').map((d, i) => ({
+        driverId: d.id, driverName: d.name, driverRating: d.rating, driverTotalTrips: d.totalTrips, driverStatus: d.status,
+        confidence: Math.round((d.rating * 0.2 + 0.1 * Math.max(0, 5 - i)) * 100) / 100,
+        reason: ['En yüksek puan ve deneyim', 'Optimum bölge eşleşmesi', 'Dengeli iş yükü dağılımı', 'Müsait sürücü', 'Alternatif sürücü'][i] || 'Müsait sürücü',
+        score: Math.round(d.rating * 20 + d.totalTrips / 100 - i * 5),
+      })).sort((a, b) => b.score - a.score));
+    }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/v5/driver-assignment/analytics', async (req, res) => {
+  const tenantId = req.query.tenant_id as string || 't-1001';
+  try {
+    if (DB_MODE) {
+      const [total, active, driversWithRatings] = await Promise.all([
+        prisma.driverAssignment.count({ where: { tenantId } }),
+        prisma.vehicle.count({ where: { tenantId, driverId: { not: null } } }),
+        prisma.driver.findMany({ where: { tenantId }, select: { rating: true } }),
+      ]);
+      const avgRating = driversWithRatings.length > 0 ? driversWithRatings.reduce((s, d) => s + (d.rating ?? 0), 0) / driversWithRatings.length : 0;
+      res.json({ totalAssignments: total, activeAssignments: active, revokedToday: 0, avgConfidence: 0.91, avgDriverRating: Math.round(avgRating * 10) / 10, assignmentsByDay: [], topDrivers: [] });
+    } else {
+      const active = mockAssignmentsData.filter((a: any) => a.revoked_at === null).length;
+      res.json({
+        totalAssignments: mockAssignmentsData.length,
+        activeAssignments: active,
+        revokedToday: mockAssignmentsData.filter((a: any) => a.revoked_at && a.revoked_at > Date.now() - 86400000).length,
+        avgConfidence: 0.91,
+        avgDriverRating: 4.7,
+        assignmentsByDay: [
+          { date: 'Pazartesi', count: 12 }, { date: 'Salı', count: 8 }, { date: 'Çarşamba', count: 15 },
+          { date: 'Perşembe', count: 10 }, { date: 'Cuma', count: 6 },
+        ],
+        topDrivers: [
+          { id: 'd3', name: 'Hasan Kaya', count: 145, avgRating: 5.0 },
+          { id: 'd1', name: 'Mehmet Şahin', count: 128, avgRating: 4.9 },
+          { id: 'd2', name: 'Ali Yılmaz', count: 98, avgRating: 4.7 },
+        ],
+      });
+    }
+  } catch (e: any) { res.status(500).json({ error: e.message }); }
+});
+
+app.get('/api/v5/driver-assignment/config', (_req, res) => {
+  res.json({ autoAssign: false, ratingWeight: 0.4, proximityWeight: 0.3, workloadWeight: 0.3, minConfidence: 0.7, notifyOnAssign: true, notifyOnRevoke: true });
+});
+
+app.post('/api/v5/driver-assignment/config', (req, res) => {
+  res.json({ status: 'SAVED', ...req.body });
+});
+
+// ── Mock assignment state ─────────────────────────────────────
+const mockFleetData = [
+  { id: 'v1', plate: '34 AB 1234', brand: 'Mercedes-Benz', model: 'Sprinter 519', year: 2024, capacity: 18, status: 'ON_ROUTE' },
+  { id: 'v2', plate: '34 CD 5678', brand: 'Ford', model: 'Transit Custom', year: 2023, capacity: 14, status: 'WARNING' },
+  { id: 'v3', plate: '34 EF 9012', brand: 'IVECO', model: 'Daily 50C', year: 2024, capacity: 20, status: 'STANDBY' },
+  { id: 'v4', plate: '34 GH 3456', brand: 'Mercedes-Benz', model: 'Vito 119', year: 2023, capacity: 8, status: 'ON_ROUTE' },
+  { id: 'v5', plate: '34 İJ 7890', brand: 'Ford', model: 'Tourneo Custom', year: 2025, capacity: 12, status: 'IDLE' },
+  { id: 'v6', plate: '34 KL 1234', brand: 'Mercedes-Benz', model: 'Sprinter 519', year: 2024, capacity: 18, status: 'OFFLINE' },
+  { id: 'v7', plate: '34 MN 5678', brand: 'IVECO', model: 'Daily 50C', year: 2024, capacity: 20, status: 'BREAK' },
+  { id: 'v8', plate: '34 OP 9012', brand: 'Ford', model: 'Transit Custom', year: 2023, capacity: 14, status: 'ON_ROUTE' },
+];
+const mockDriverState = [
+  { id: 'd1', name: 'Mehmet Şahin', phone: '0532 111 2233', email: 'mehmet@example.com', licenseNumber: '34-L-12345', rating: 4.9, totalTrips: 1240, totalHours: 8920, status: 'ACTIVE' },
+  { id: 'd2', name: 'Ali Yılmaz', phone: '0533 222 3344', email: 'ali@example.com', licenseNumber: '34-L-23456', rating: 4.7, totalTrips: 980, totalHours: 6540, status: 'ACTIVE' },
+  { id: 'd3', name: 'Hasan Kaya', phone: '0535 333 4455', email: 'hasan@example.com', licenseNumber: '34-L-34567', rating: 5.0, totalTrips: 1560, totalHours: 11200, status: 'ACTIVE' },
+  { id: 'd4', name: 'Burak Demir', phone: '0536 444 5566', email: 'burak@example.com', licenseNumber: '34-L-45678', rating: 4.6, totalTrips: 670, totalHours: 4560, status: 'ON_LEAVE' },
+  { id: 'd5', name: 'Can Öztürk', phone: '0532 555 6677', email: 'can@example.com', licenseNumber: '34-L-56789', rating: 4.8, totalTrips: 345, totalHours: 2100, status: 'ACTIVE' },
+  { id: 'd6', name: 'Serkan Aydın', phone: '0532 666 7788', email: 'serkan@example.com', licenseNumber: '34-L-67890', rating: 4.4, totalTrips: 2789, totalHours: 18400, status: 'OFF_DUTY' },
+  { id: 'd7', name: 'Emre Yıldız', phone: '0532 777 8899', email: 'emre@example.com', licenseNumber: '34-L-78901', rating: 4.3, totalTrips: 678, totalHours: 3200, status: 'BREAK' },
+  { id: 'd8', name: 'Murat Çelik', phone: '0532 888 9900', email: 'murat@example.com', licenseNumber: '34-L-89012', rating: 4.9, totalTrips: 456, totalHours: 1800, status: 'ACTIVE' },
+];
+const mockAssignmentsData: any[] = [];
+const mockAssignedVehicleIds = new Set<string>();
 
 // ── Routes ────────────────────────────────────────────────────
 app.get('/api/v5/routes/detail/:routeId', async (req, res) => {
